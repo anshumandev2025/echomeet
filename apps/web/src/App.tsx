@@ -1,7 +1,15 @@
-import { Button } from "antd";
-
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import MeetingPage from "./pages/MeetingPage";
 const App = () => {
-  return <Button className="text-green-600 bg-red-300">Hello world</Button>;
+  return (
+    <>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/meeting" element={<MeetingPage />} />
+        </Routes>
+      </BrowserRouter>
+    </>
+  );
 };
 
 export default App;
