@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { Input, Button } from "antd";
 import { LOGO } from "../../constants/layoutConstant";
-import { generateRoomName } from "../../utils/helperFunctions";
+import { generateRoomName, isValidRoomName } from "../../utils/helperFunctions";
+import { useGlobalMessage } from "../../context/MessageProvider";
+import useCurrentMeetingState from "../../store/meetingState";
 
 const JoinMeeting = () => {
   const [roomName, setRoomName] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const { showMessage } = useGlobalMessage();
+  const { setCurrentRoomName, updateMeetingState } = useCurrentMeetingState();
   useEffect(() => {
     // Generate initial room name on component mount
     setRoomName(generateRoomName());
@@ -14,13 +17,16 @@ const JoinMeeting = () => {
 
   const handleJoinMeeting = async () => {
     if (!roomName.trim()) return;
-
+    if (!isValidRoomName(roomName)) {
+      showMessage("error", "Room name is not valid");
+      return;
+    }
     setLoading(true);
     try {
       // Add your join meeting logic here
       console.log("Joining room:", roomName);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      setCurrentRoomName(roomName);
+      updateMeetingState("lobby");
     } catch (error) {
       console.error("Error joining meeting:", error);
     } finally {
@@ -38,7 +44,7 @@ const JoinMeeting = () => {
         {/* Logo Section */}
         <div className="flex justify-center mb-8">
           <div className="p-6 bg-white rounded-2xl shadow-2xl">
-            <LOGO />
+            <LOGO textColor="black" />
           </div>
         </div>
 

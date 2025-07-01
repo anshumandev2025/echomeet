@@ -6,3 +6,8 @@ export const generateRoomName = () => {
   }
   return result;
 };
+
+export const isValidRoomName = (roomName: string): boolean => {
+  const roomNamePattern = /^[a-z0-9]{8}$/;
+  return roomNamePattern.test(roomName.trim());
+};
