@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { Input, Button } from "antd";
-import { LOGO } from "../../constants/layoutConstant";
-import { generateRoomName, isValidRoomName } from "../../utils/helperFunctions";
-import { useGlobalMessage } from "../../context/MessageProvider";
-import useCurrentMeetingState from "../../store/meetingState";
+import { LOGO } from "../../../constants/layoutConstant";
+import {
+  generateRoomName,
+  isValidRoomName,
+} from "../../../utils/helperFunctions";
+import { useGlobalMessage } from "../../../context/MessageProvider";
+import useCurrentMeetingState from "../../../store/meetingState";
 
 const JoinMeeting = () => {
   const [roomName, setRoomName] = useState("");

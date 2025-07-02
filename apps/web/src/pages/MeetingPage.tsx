@@ -1,6 +1,6 @@
-import JoinMeeting from "../components/meeting/JoinMeeting";
-import LoobyRoom from "../components/meeting/LoobyRoom";
-import MeetingRoom from "../components/meeting/MeetingRoom";
+import JoinMeeting from "../components/meeting/joinMeeting/JoinMeeting";
+import LoobyRoom from "../components/meeting/lobbyRoom/LoobyRoom";
+import MeetingRoom from "../components/meeting/meetingRoom/MeetingRoom";
 import useCurrentMeetingState from "../store/meetingState";
 
 const MeetingPage = () => {

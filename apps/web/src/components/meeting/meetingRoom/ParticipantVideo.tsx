@@ -1,0 +1,111 @@
+import React, { useEffect, useRef } from "react";
+import { motion } from "motion/react";
+import { MicOff, VideoOff } from "lucide-react";
+
+interface Participant {
+  id: string;
+  name: string;
+  stream: MediaStream | null;
+  videoEnabled: boolean;
+  audioEnabled: boolean;
+  isSpeaking: boolean;
+}
+
+interface ParticipantVideoProps {
+  participant: Participant;
+  isLocal?: boolean;
+  className?: string;
+  fixedSize?: boolean;
+}
+
+const ParticipantVideo: React.FC<ParticipantVideoProps> = ({
+  participant,
+  isLocal = false,
+  className = "",
+  fixedSize = false,
+}) => {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    if (videoRef.current && participant.stream) {
+      videoRef.current.srcObject = participant.stream;
+    }
+  }, [participant.stream]);
+
+  const sizeClasses = fixedSize
+    ? "w-80 h-60 min-w-80 min-h-60" // Fixed size: 320px x 240px
+    : "w-full h-full";
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.8 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className={`relative bg-gray-900 rounded-xl overflow-hidden shadow-lg border-2 ${
+        isLocal ? "border-green-500" : "border-gray-700"
+      } ${sizeClasses} ${className}`}
+    >
+      {participant.videoEnabled ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          muted={isLocal}
+          playsInline
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-gray-800">
+          <div className="text-center text-white">
+            <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-2">
+              <span className="text-xl font-bold">
+                {participant.name.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <p className="text-sm font-medium">{participant.name}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-white text-sm font-medium bg-black bg-opacity-50 px-2 py-1 rounded">
+            {isLocal ? "You" : participant.name}
+          </span>
+          {isLocal && (
+            <span className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded">
+              LOCAL
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1">
+          {!participant.audioEnabled && (
+            <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center">
+              <MicOff size={12} className="text-white" />
+            </div>
+          )}
+          {!participant.videoEnabled && (
+            <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center">
+              <VideoOff size={12} className="text-white" />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {participant.isSpeaking && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute inset-0 border-4 border-green-400 rounded-xl pointer-events-none"
+          style={{
+            boxShadow: "0 0 20px rgba(34, 197, 94, 0.5)",
+          }}
+        />
+      )}
+    </motion.div>
+  );
+};
+
+export default ParticipantVideo;

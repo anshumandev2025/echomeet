@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { Button, Select, Card, message } from "antd";
+import { Button, Select, Card, message, Input } from "antd";
 import { motion, AnimatePresence } from "motion/react";
 import { SettingOutlined, UserOutlined } from "@ant-design/icons";
-import useCurrentMeetingState from "../../store/meetingState";
-import { getMediaDevices, getUserMediaStream } from "../../utils/userMedia";
-import type { MediaDevice } from "../../types/MediaTypes";
+import useCurrentMeetingState from "../../../store/meetingState";
+import { getMediaDevices, getUserMediaStream } from "../../../utils/userMedia";
+import type { MediaDevice } from "../../../types/MediaTypes";
 import { Mic, MicOff, Video, VideoOff } from "lucide-react";
-import { LOGO } from "../../constants/layoutConstant";
+import { LOGO } from "../../../constants/layoutConstant";
+import { useGlobalMessage } from "../../../context/MessageProvider";
 
 const { Option } = Select;
 
@@ -14,6 +15,7 @@ const LobbyRoom = () => {
   const { roomName, setLocalStream, updateMeetingState } =
     useCurrentMeetingState();
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [name, setName] = useState<string>("");
   const [videoDevices, setVideoDevices] = useState<MediaDevice[]>([]);
   const [audioDevices, setAudioDevices] = useState<MediaDevice[]>([]);
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>("");
@@ -26,6 +28,7 @@ const LobbyRoom = () => {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const hiddenVideoRef = useRef<HTMLVideoElement>(null);
+  const { showMessage } = useGlobalMessage();
   //   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Initialize media on mount
@@ -151,6 +154,10 @@ const LobbyRoom = () => {
 
   const handleJoinMeeting = () => {
     // onJoinMeeting?.(stream);
+    if (!name) {
+      showMessage("error", "Please enter name");
+      return;
+    }
     updateMeetingState("in-meeting");
   };
 
@@ -319,10 +326,21 @@ const LobbyRoom = () => {
                       ))}
                     </Select>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Enter your name
+                    </label>
+                    <Input
+                      type="text"
+                      className="w-full"
+                      size="large"
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </div>
                   <motion.div
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="mt-10"
+                    className="mt-3"
                   >
                     <Button
                       type="primary"
