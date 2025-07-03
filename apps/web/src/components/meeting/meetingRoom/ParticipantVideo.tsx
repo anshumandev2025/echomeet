@@ -52,23 +52,25 @@ const ParticipantVideo: React.FC<ParticipantVideoProps> = ({
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-gray-800">
           <div className="text-center text-white">
-            <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-2">
-              <span className="text-xl font-bold">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-2">
+              <span className="text-lg sm:text-xl font-bold">
                 {participant.name.charAt(0).toUpperCase()}
               </span>
             </div>
-            <p className="text-sm font-medium">{participant.name}</p>
+            <p className="text-xs sm:text-sm font-medium px-2">
+              {participant.name}
+            </p>
           </div>
         </div>
       )}
 
-      <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-white text-sm font-medium bg-black bg-opacity-50 px-2 py-1 rounded">
+      <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 right-1 sm:right-2 flex items-center justify-between">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <span className="text-white text-xs sm:text-sm font-medium bg-black bg-opacity-50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
             {isLocal ? "You" : participant.name}
           </span>
           {isLocal && (
-            <span className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded">
+            <span className="text-xs bg-green-600 text-white px-1 sm:px-1.5 py-0.5 rounded">
               LOCAL
             </span>
           )}
@@ -76,13 +78,13 @@ const ParticipantVideo: React.FC<ParticipantVideoProps> = ({
 
         <div className="flex items-center gap-1">
           {!participant.audioEnabled && (
-            <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center">
-              <MicOff size={12} className="text-white" />
+            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-red-600 rounded-full flex items-center justify-center">
+              <MicOff size={10} className="text-white sm:w-3 sm:h-3" />
             </div>
           )}
           {!participant.videoEnabled && (
-            <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center">
-              <VideoOff size={12} className="text-white" />
+            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-red-600 rounded-full flex items-center justify-center">
+              <VideoOff size={10} className="text-white sm:w-3 sm:h-3" />
             </div>
           )}
         </div>
