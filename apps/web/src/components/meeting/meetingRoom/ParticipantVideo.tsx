@@ -15,14 +15,12 @@ interface ParticipantVideoProps {
   participant: Participant;
   isLocal?: boolean;
   className?: string;
-  fixedSize?: boolean;
 }
 
 const ParticipantVideo: React.FC<ParticipantVideoProps> = ({
   participant,
   isLocal = false,
   className = "",
-  fixedSize = false,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -31,10 +29,6 @@ const ParticipantVideo: React.FC<ParticipantVideoProps> = ({
       videoRef.current.srcObject = participant.stream;
     }
   }, [participant.stream]);
-
-  const sizeClasses = fixedSize
-    ? "w-80 h-60 min-w-80 min-h-60" // Fixed size: 320px x 240px
-    : "w-full h-full";
 
   return (
     <motion.div
@@ -45,7 +39,7 @@ const ParticipantVideo: React.FC<ParticipantVideoProps> = ({
       transition={{ duration: 0.3, ease: "easeOut" }}
       className={`relative bg-gray-900 rounded-xl overflow-hidden shadow-lg border-2 ${
         isLocal ? "border-green-500" : "border-gray-700"
-      } ${sizeClasses} ${className}`}
+      } ${className}`}
     >
       {participant.videoEnabled ? (
         <video

@@ -30,7 +30,6 @@ const MeetingRoom = () => {
 
   const [controlsVisible, setControlsVisible] = useState(true);
   const [isControlsHovered, setIsControlsHovered] = useState(false);
-  const [useFixedSizes, setUseFixedSizes] = useState(false);
   const hideControlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -183,18 +182,7 @@ const MeetingRoom = () => {
         <VideoGrid
           participants={participants}
           localParticipant={localParticipant}
-          maxVisibleParticipants={3}
         />
-      </div>
-
-      {/* Layout Toggle Button */}
-      <div className="absolute top-20 right-4 z-20">
-        <button
-          onClick={() => setUseFixedSizes(!useFixedSizes)}
-          className="bg-gray-800/90 backdrop-blur-sm text-white px-3 py-1 rounded-lg text-sm hover:bg-gray-700 transition-colors"
-        >
-          {useFixedSizes ? "Grid View" : "Fixed View"}
-        </button>
       </div>
 
       {/* Bottom controls */}
