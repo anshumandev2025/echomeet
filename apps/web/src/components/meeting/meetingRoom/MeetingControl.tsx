@@ -1,5 +1,5 @@
-import React from "react";
-import { Button, Tooltip } from "antd";
+import React, { useState } from "react";
+import { Button, Drawer, Tooltip } from "antd";
 import {
   Video,
   VideoOff,
@@ -11,6 +11,8 @@ import {
   Monitor,
   UserX,
 } from "lucide-react";
+import ChatComponent from "./chat/Chat";
+import ParticipantsList from "./participant/ParticipantList";
 
 interface MeetingControlsProps {
   videoEnabled: boolean;
@@ -35,11 +37,13 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
   canRemoveParticipant = false,
   showDemoControls = false,
 }) => {
+  const [openChat, setOpenChat] = useState(false);
+  const [openParticipants, setOpenParticipants] = useState(false);
   return (
-    <div className="bg-gradient-to-t from-black/70 to-transparent p-6">
+    <div className="bg-gradient-to-t from-black/70 to-transparent md:p-6">
       <div className="flex items-center justify-center">
         <div className="bg-gray-800/90 backdrop-blur-sm rounded-2xl px-6 py-4 shadow-2xl border border-gray-700">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             {/* Video toggle */}
             <Tooltip
               title={videoEnabled ? "Turn off camera" : "Turn on camera"}
@@ -89,6 +93,7 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
             {/* Chat */}
             <Tooltip title="Chat">
               <Button
+                onClick={() => setOpenChat(true)}
                 shape="circle"
                 size="large"
                 className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600 w-12 h-12 flex items-center justify-center"
@@ -99,6 +104,7 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
             {/* Participants */}
             <Tooltip title="Participants">
               <Button
+                onClick={() => setOpenParticipants(true)}
                 shape="circle"
                 size="large"
                 className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600 w-12 h-12 flex items-center justify-center"
@@ -164,6 +170,23 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
           </Button>
         </div>
       )}
+      <Drawer
+        title="Chat"
+        closable={{ "aria-label": "Close Button" }}
+        onClose={() => setOpenChat(false)}
+        open={openChat}
+        className=""
+      >
+        <ChatComponent />
+      </Drawer>
+
+      <Drawer
+        title="Participants"
+        onClose={() => setOpenParticipants(false)}
+        open={openParticipants}
+      >
+        <ParticipantsList />
+      </Drawer>
     </div>
   );
 };
