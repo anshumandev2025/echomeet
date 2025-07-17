@@ -1,10 +1,4 @@
-import {
-  BrowserRouter,
-  Route,
-  Routes,
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
+import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import MeetingPage from "./pages/MeetingPage";
 import { MessageProvider } from "./context/MessageProvider";
 import { useEffect } from "react";
