@@ -27,7 +27,7 @@ interface Participant {
 }
 
 const ParticipantsList: React.FC = () => {
-  const [participants, setParticipants] = useState<Participant[]>([
+  const [participants, _setParticipants] = useState<Participant[]>([
     {
       id: 1,
       name: "John Doe",
