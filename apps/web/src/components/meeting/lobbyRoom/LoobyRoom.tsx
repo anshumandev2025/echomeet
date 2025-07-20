@@ -8,6 +8,7 @@ import type { MediaDevice } from "../../../types/MediaTypes";
 import { Mic, MicOff, Video, VideoOff } from "lucide-react";
 import { LOGO } from "../../../constants/layoutConstant";
 import { useGlobalMessage } from "../../../context/MessageProvider";
+import { socket } from "../../../socket/SocketConnect";
 
 const { Option } = Select;
 
@@ -158,6 +159,7 @@ const LobbyRoom = () => {
       showMessage("error", "Please enter name");
       return;
     }
+    socket.emit("join-room", { roomId: roomName, userName: name });
     updateMeetingState("in-meeting");
   };
 

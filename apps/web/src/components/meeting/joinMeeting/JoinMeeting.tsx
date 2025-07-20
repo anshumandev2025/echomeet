@@ -7,6 +7,7 @@ import {
 } from "../../../utils/helperFunctions";
 import { useGlobalMessage } from "../../../context/MessageProvider";
 import useCurrentMeetingState from "../../../store/meetingState";
+import { socket } from "../../../socket/SocketConnect";
 
 const JoinMeeting = () => {
   const [roomName, setRoomName] = useState("");
@@ -29,6 +30,7 @@ const JoinMeeting = () => {
       // Add your join meeting logic here
       console.log("Joining room:", roomName);
       setCurrentRoomName(roomName);
+      socket.connect();
       updateMeetingState("lobby");
     } catch (error) {
       console.error("Error joining meeting:", error);

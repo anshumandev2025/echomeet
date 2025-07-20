@@ -5,6 +5,8 @@ import useCurrentMeetingState from "../../../store/meetingState";
 import MeetingControls from "./MeetingControl";
 import MeetingHeader from "./MeetingHeader";
 import VideoGrid from "./VideoGrid";
+import { socket } from "../../../socket/SocketConnect";
+import { useNavigate } from "react-router-dom";
 
 // Types
 interface Participant {
@@ -33,7 +35,7 @@ const MeetingRoom = () => {
   const hideControlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
-
+  const { updateMeetingState } = useCurrentMeetingState();
   // Initialize demo participants
   useEffect(() => {
     const demoParticipants: Participant[] = [
@@ -143,6 +145,8 @@ const MeetingRoom = () => {
     if (localStream) {
       localStream.getTracks().forEach((track) => track.stop());
     }
+    socket.disconnect();
+    updateMeetingState("join");
   };
 
   const addParticipant = () => {
