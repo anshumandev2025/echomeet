@@ -1,5 +1,6 @@
 import { Socket } from "socket.io";
-import mediasoup, { types as msTypes } from "mediasoup";
+import { types as msTypes } from "mediasoup";
+import * as mediasoup from "mediasoup";
 import {
   consumers,
   peerTransports,

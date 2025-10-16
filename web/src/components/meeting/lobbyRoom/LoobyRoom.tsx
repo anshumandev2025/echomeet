@@ -9,6 +9,7 @@ import { Mic, MicOff, Video, VideoOff } from "lucide-react";
 import { LOGO } from "../../../constants/layoutConstant";
 import { useGlobalMessage } from "../../../context/MessageProvider";
 import { socket } from "../../../socket/SocketConnect";
+import useUserState from "../../../store/userState";
 
 const { Option } = Select;
 
@@ -30,6 +31,7 @@ const LobbyRoom = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hiddenVideoRef = useRef<HTMLVideoElement>(null);
   const { showMessage } = useGlobalMessage();
+  const { setUserName } = useUserState();
   //   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Initialize media on mount
@@ -159,7 +161,11 @@ const LobbyRoom = () => {
       showMessage("error", "Please enter name");
       return;
     }
+    setUserName(name);
     socket.emit("join-room", { roomId: roomName, userName: name });
+    socket.emit("getRouterRtpCapabilities", (data: any) => {
+      console.log(`getRouterRtpCapabilities: ${data.routerRtpCapabilities}`);
+    });
     updateMeetingState("in-meeting");
   };
 
@@ -260,14 +266,22 @@ const LobbyRoom = () => {
                     shape="circle"
                     size="large"
                     onClick={toggleCamera}
-                    className={`${isCameraOn ? "bg-green-600 border-green-600" : "bg-red-600 border-red-600"} text-white hover:opacity-80`}
+                    className={`${
+                      isCameraOn
+                        ? "bg-green-600 border-green-600"
+                        : "bg-red-600 border-red-600"
+                    } text-white hover:opacity-80`}
                     icon={isCameraOn ? <Video /> : <VideoOff />}
                   />
                   <Button
                     shape="circle"
                     size="large"
                     onClick={toggleMicrophone}
-                    className={`${isMicOn ? "bg-green-600 border-green-600" : "bg-red-600 border-red-600"} text-white hover:opacity-80`}
+                    className={`${
+                      isMicOn
+                        ? "bg-green-600 border-green-600"
+                        : "bg-red-600 border-red-600"
+                    } text-white hover:opacity-80`}
                     icon={isMicOn ? <Mic /> : <MicOff />}
                   />
                 </motion.div>

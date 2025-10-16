@@ -1,4 +1,3 @@
-import { Request, Response } from "express";
 import connectToServer from "./server";
 const port = process.env.PORT || 3000;
 
