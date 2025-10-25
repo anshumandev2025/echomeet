@@ -4,7 +4,7 @@ import { cleanupPeer } from "./mediaEvents";
 
 export const joinRoom = (
   socket: Socket,
-  { roomId, userName }: joinRoomType
+  { roomId, userName }: JoinRoomType
 ) => {
   console.log(
     `User ${userName} with socket it ${socket.id} joining room ${roomId}`

@@ -1,4 +1,4 @@
-interface joinRoomType {
+interface JoinRoomType {
   roomId: string;
   userName: string;
 }

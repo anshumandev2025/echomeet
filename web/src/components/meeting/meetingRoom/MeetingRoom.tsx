@@ -6,7 +6,6 @@ import MeetingControls from "./MeetingControl";
 import MeetingHeader from "./MeetingHeader";
 import VideoGrid from "./VideoGrid";
 import { socket } from "../../../socket/SocketConnect";
-import { useNavigate } from "react-router-dom";
 
 // Types
 interface Participant {
@@ -66,12 +65,9 @@ const MeetingRoom = () => {
     ];
 
     demoParticipants.forEach((participant, index) => {
-      setTimeout(
-        () => {
-          setParticipants((prev) => [...prev, participant]);
-        },
-        (index + 1) * 1000
-      );
+      setTimeout(() => {
+        setParticipants((prev) => [...prev, participant]);
+      }, (index + 1) * 1000);
     });
   }, []);
 

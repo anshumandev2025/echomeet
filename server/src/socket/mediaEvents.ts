@@ -12,8 +12,8 @@ import { mediasoupConfig } from "../config/mediasoup-config";
 
 export async function initMediasoupWorker() {
   const worker = await mediasoup.createWorker({
-    rtcMinPort: 30000,
-    rtcMaxPort: 30100,
+    rtcMinPort: 40000,
+    rtcMaxPort: 49999,
   });
 
   worker.on("died", () => {
@@ -43,7 +43,9 @@ export const createTransport = async (
   callback: any
 ) => {
   const router = routers[roomId];
-  const transport = await createWebRtcTransport(router);
+  const direction = socket.handshake.query.direction || "send";
+  console.log("Direction--->", direction);
+  const transport = await createWebRtcTransport(router, direction.toString());
   if (!peerTransports[socket.id]) {
     peerTransports[socket.id] = [];
   }
@@ -134,14 +136,15 @@ export const handleConsume = async (
   }
 };
 async function createWebRtcTransport(
-  router: msTypes.Router
+  router: msTypes.Router,
+  direction: string
 ): Promise<msTypes.WebRtcTransport> {
   const transport = await router.createWebRtcTransport({
     listenIps: [{ ip: "0.0.0.0", announcedIp: "http://127.0.0.1:3000" }],
     enableUdp: true,
     enableTcp: true,
     preferUdp: true,
-    appData: {}, // can set direction here: send / recv
+    appData: { direction }, // can set direction here: send / recv
   });
 
   return transport;
