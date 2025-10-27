@@ -1,4 +1,4 @@
-import type { MediaDevice } from "../types/MediaTypes";
+import type { MediaDeviceType } from "../types/MediaTypes";
 
 export const getUserMediaStream = async (
   constraints: MediaStreamConstraints = { video: true, audio: true }
@@ -13,8 +13,8 @@ export const getUserMediaStream = async (
 };
 
 export const getMediaDevices = async (): Promise<{
-  videoDevices: MediaDevice[];
-  audioDevices: MediaDevice[];
+  videoDevices: MediaDeviceType[];
+  audioDevices: MediaDeviceType[];
   error: string | null;
 }> => {
   try {

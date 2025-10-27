@@ -6,16 +6,8 @@ import MeetingControls from "./MeetingControl";
 import MeetingHeader from "./MeetingHeader";
 import VideoGrid from "./VideoGrid";
 import { socket } from "../../../socket/SocketConnect";
-
-// Types
-interface Participant {
-  id: string;
-  name: string;
-  stream: MediaStream | null;
-  videoEnabled: boolean;
-  audioEnabled: boolean;
-  isSpeaking: boolean;
-}
+import type { Participant } from "../../../types/MediaTypes";
+import useMediaSoupState from "../../../store/mediaSoupState";
 
 const MeetingRoom = () => {
   const { roomName, localStream } = useCurrentMeetingState();
@@ -28,7 +20,7 @@ const MeetingRoom = () => {
     audioEnabled: true,
     isSpeaking: false,
   });
-
+  const { producerTransport } = useMediaSoupState();
   const [controlsVisible, setControlsVisible] = useState(true);
   const [isControlsHovered, setIsControlsHovered] = useState(false);
   const hideControlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -165,7 +157,16 @@ const MeetingRoom = () => {
       message.info(`${removed.name} left the meeting`);
     }
   };
-
+  useEffect(() => {
+    const produceMedia = async () => {
+      if (!localStream || !producerTransport) return;
+      const track = localStream.getVideoTracks()[0];
+      await producerTransport.produce({ track });
+    };
+    if (localStream && producerTransport) {
+      produceMedia();
+    }
+  }, [localStream, producerTransport]);
   const allParticipants = [localParticipant, ...participants];
 
   return (

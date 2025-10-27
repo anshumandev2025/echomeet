@@ -30,8 +30,8 @@ const connectToServer = () => {
       getRTPCapabilities(worker, roomId, callback)
     );
 
-    socket.on("create-transport", ({ roomId }, callback) =>
-      createTransport(socket, roomId, callback)
+    socket.on("create-transport", ({ roomId, direction }, callback) =>
+      createTransport(socket, roomId, direction, callback)
     );
 
     socket.on(

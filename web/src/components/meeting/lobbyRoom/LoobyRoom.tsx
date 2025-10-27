@@ -4,22 +4,36 @@ import { motion, AnimatePresence } from "motion/react";
 import { SettingOutlined, UserOutlined } from "@ant-design/icons";
 import useCurrentMeetingState from "../../../store/meetingState";
 import { getMediaDevices, getUserMediaStream } from "../../../utils/userMedia";
-import type { MediaDevice } from "../../../types/MediaTypes";
 import { Mic, MicOff, Video, VideoOff } from "lucide-react";
 import { LOGO } from "../../../constants/layoutConstant";
 import { useGlobalMessage } from "../../../context/MessageProvider";
 import { socket } from "../../../socket/SocketConnect";
 import useUserState from "../../../store/userState";
+import useMediaSoupState from "../../../store/mediaSoupState";
+import { Device } from "mediasoup-client";
+import type {
+  CreateTransportType,
+  MediaDeviceType,
+} from "../../../types/MediaTypes";
+import type { RtpCapabilities } from "mediasoup-client/types";
 
 const { Option } = Select;
 
 const LobbyRoom = () => {
   const { roomName, setLocalStream, updateMeetingState } =
     useCurrentMeetingState();
+  const {
+    setRtpCapabilities,
+    setDevice,
+    device,
+    rtpCapabilities,
+    setProducerTransport,
+    producerTransport,
+  } = useMediaSoupState();
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [name, setName] = useState<string>("");
-  const [videoDevices, setVideoDevices] = useState<MediaDevice[]>([]);
-  const [audioDevices, setAudioDevices] = useState<MediaDevice[]>([]);
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceType[]>([]);
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceType[]>([]);
   const [selectedVideoDevice, setSelectedVideoDevice] = useState<string>("");
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>("");
   //   const [isBackgroundBlurred, setIsBackgroundBlurred] =
@@ -155,7 +169,7 @@ const LobbyRoom = () => {
     });
   };
 
-  const handleJoinMeeting = () => {
+  const handleJoinMeeting = async () => {
     // onJoinMeeting?.(stream);
     if (!name) {
       showMessage("error", "Please enter name");
@@ -163,12 +177,54 @@ const LobbyRoom = () => {
     }
     setUserName(name);
     socket.emit("join-room", { roomId: roomName, userName: name });
-    socket.emit("getRouterRtpCapabilities", (data: any) => {
-      console.log(`getRouterRtpCapabilities: ${data.routerRtpCapabilities}`);
-    });
-    updateMeetingState("in-meeting");
+    socket.emit(
+      "get-rtp-capabilities",
+      { roomId: roomName },
+      async (data: RtpCapabilities) => {
+        const device = new Device();
+        await device.load({
+          routerRtpCapabilities: data,
+        });
+        setRtpCapabilities(data);
+        setDevice(device);
+      }
+    );
   };
 
+  useEffect(() => {
+    if (device && rtpCapabilities) {
+      socket.emit(
+        "create-transport",
+        { roomId: roomName, direction: "send" },
+        async (params: CreateTransportType) => {
+          if (!params) return;
+          const transport = device.createSendTransport(params);
+          setProducerTransport(transport);
+          transport.on("connect", ({ dtlsParameters }, callback) => {
+            try {
+              socket.emit(
+                "connect-transport",
+                { transportId: transport.id, dtlsParameters },
+                callback
+              );
+            } catch (error) {
+              console.log("Error", error);
+            }
+          });
+          transport.on("produce", async ({ kind, rtpParameters }, callback) => {
+            socket.emit(
+              "produce",
+              { kind, rtpParameters, transportId: transport.id },
+              (id: string) => {
+                callback({ id });
+              }
+            );
+          });
+        }
+      );
+      updateMeetingState("in-meeting");
+    }
+  }, [device, rtpCapabilities]);
   return (
     <div className="min-h-screen  p-4">
       <div className="max-w-6xl mx-auto">

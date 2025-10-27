@@ -40,12 +40,11 @@ export const getRTPCapabilities = async (
 export const createTransport = async (
   socket: Socket,
   roomId: string,
+  direction: string,
   callback: any
 ) => {
   const router = routers[roomId];
-  const direction = socket.handshake.query.direction || "send";
-  console.log("Direction--->", direction);
-  const transport = await createWebRtcTransport(router, direction.toString());
+  const transport = await createWebRtcTransport(router, direction);
   if (!peerTransports[socket.id]) {
     peerTransports[socket.id] = [];
   }
