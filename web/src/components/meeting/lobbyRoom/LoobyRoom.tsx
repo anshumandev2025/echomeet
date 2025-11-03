@@ -28,7 +28,6 @@ const LobbyRoom = () => {
     device,
     rtpCapabilities,
     setProducerTransport,
-    producerTransport,
   } = useMediaSoupState();
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [name, setName] = useState<string>("");

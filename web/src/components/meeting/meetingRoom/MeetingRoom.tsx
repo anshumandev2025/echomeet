@@ -6,12 +6,17 @@ import MeetingControls from "./MeetingControl";
 import MeetingHeader from "./MeetingHeader";
 import VideoGrid from "./VideoGrid";
 import { socket } from "../../../socket/SocketConnect";
-import type { Participant } from "../../../types/MediaTypes";
+import type {
+  CreateTransportType,
+  Participant,
+} from "../../../types/MediaTypes";
 import useMediaSoupState from "../../../store/mediaSoupState";
+import type { Transport } from "mediasoup-client/types";
 
 const MeetingRoom = () => {
   const { roomName, localStream } = useCurrentMeetingState();
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const { setConsumerTransport, device } = useMediaSoupState();
   const [localParticipant, setLocalParticipant] = useState<Participant>({
     id: "local",
     name: "You",
@@ -28,40 +33,40 @@ const MeetingRoom = () => {
   );
   const { updateMeetingState } = useCurrentMeetingState();
   // Initialize demo participants
-  useEffect(() => {
-    const demoParticipants: Participant[] = [
-      {
-        id: "2",
-        name: "Alice Johnson",
-        stream: null,
-        videoEnabled: true,
-        audioEnabled: true,
-        isSpeaking: false,
-      },
-      {
-        id: "3",
-        name: "Bob Smith",
-        stream: null,
-        videoEnabled: false,
-        audioEnabled: true,
-        isSpeaking: false,
-      },
-      {
-        id: "4",
-        name: "Carol Wilson",
-        stream: null,
-        videoEnabled: true,
-        audioEnabled: false,
-        isSpeaking: true,
-      },
-    ];
+  // useEffect(() => {
+  //   const demoParticipants: Participant[] = [
+  //     {
+  //       id: "2",
+  //       name: "Alice Johnson",
+  //       stream: null,
+  //       videoEnabled: true,
+  //       audioEnabled: true,
+  //       isSpeaking: false,
+  //     },
+  //     {
+  //       id: "3",
+  //       name: "Bob Smith",
+  //       stream: null,
+  //       videoEnabled: false,
+  //       audioEnabled: true,
+  //       isSpeaking: false,
+  //     },
+  //     {
+  //       id: "4",
+  //       name: "Carol Wilson",
+  //       stream: null,
+  //       videoEnabled: true,
+  //       audioEnabled: false,
+  //       isSpeaking: true,
+  //     },
+  //   ];
 
-    demoParticipants.forEach((participant, index) => {
-      setTimeout(() => {
-        setParticipants((prev) => [...prev, participant]);
-      }, (index + 1) * 1000);
-    });
-  }, []);
+  //   demoParticipants.forEach((participant, index) => {
+  //     setTimeout(() => {
+  //       setParticipants((prev) => [...prev, participant]);
+  //     }, (index + 1) * 1000);
+  //   });
+  // }, []);
 
   // Auto-hide controls logic
   useEffect(() => {
@@ -77,7 +82,6 @@ const MeetingRoom = () => {
         }, 3000);
       }
     };
-
     const handleMouseMove = () => resetHideTimer();
     const handleMouseLeave = () => resetHideTimer();
 
@@ -167,6 +171,64 @@ const MeetingRoom = () => {
       produceMedia();
     }
   }, [localStream, producerTransport]);
+  useEffect(() => {
+    const consumeMedia = async (
+      producerId: string,
+      recvTransport: Transport
+    ) => {
+      if (!recvTransport || !device) return;
+      socket.emit(
+        "consume",
+        {
+          producerId: producerId,
+          rtpCapabilities: device.rtpCapabilities,
+        },
+        async (params: any) => {
+          if (params.error) {
+            console.error("Cannot consume", params.error);
+            return;
+          }
+
+          const consumer = await recvTransport.consume({
+            id: params.id,
+            producerId: params.producerId,
+            kind: params.kind,
+            rtpParameters: params.rtpParameters,
+          });
+          console.log("consumer-->", consumer);
+          const newStream = new MediaStream([consumer.track]);
+          // setPeers((prev) => [...prev, { id: producerId, stream: newStream }]);
+          console.log("Local stream-->", localStream);
+          console.log("new Stream--->", newStream);
+        }
+      );
+    };
+    const createRecvTransport = async () => {
+      if (!device) return;
+      socket.emit(
+        "create-transport",
+        { roomId: roomName, direction: "recv" },
+        async (params: CreateTransportType) => {
+          const transport = device.createRecvTransport(params);
+          transport.on("connect", ({ dtlsParameters }, callback) => {
+            socket.emit(
+              "connect-transport",
+              { transportId: transport.id, dtlsParameters },
+              callback
+            );
+          });
+          console.log("recv trandport-->", transport);
+          // await transport.connect();
+          setConsumerTransport(transport);
+          socket.on("new-producer", async ({ socketId, producerId, kind }) => {
+            console.log("socket.id-->", socketId, kind);
+            consumeMedia(producerId, transport);
+          });
+        }
+      );
+    };
+    createRecvTransport();
+  }, []);
   const allParticipants = [localParticipant, ...participants];
 
   return (
