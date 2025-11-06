@@ -22,7 +22,7 @@ const VideoGrid: React.FC<VideoGridProps> = ({
 }) => {
   const allParticipants = [localParticipant, ...participants];
   const participantCount = allParticipants.length;
-
+  // console.log("participant--->", participants);
   // Helper function to get grid configuration based on screen size and participant count
   const getGridConfig = (count: number) => {
     // Check if we're on mobile (you can also use a proper hook for this)

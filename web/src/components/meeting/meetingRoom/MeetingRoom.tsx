@@ -14,9 +14,9 @@ import useMediaSoupState from "../../../store/mediaSoupState";
 import type { Transport } from "mediasoup-client/types";
 
 const MeetingRoom = () => {
-  const { roomName, localStream } = useCurrentMeetingState();
+  const { roomName, localStream, setLocalStream } = useCurrentMeetingState();
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const { setConsumerTransport, device } = useMediaSoupState();
+  const { setRecvTransport, recvTransport, device } = useMediaSoupState();
   const [localParticipant, setLocalParticipant] = useState<Participant>({
     id: "local",
     name: "You",
@@ -172,37 +172,6 @@ const MeetingRoom = () => {
     }
   }, [localStream, producerTransport]);
   useEffect(() => {
-    const consumeMedia = async (
-      producerId: string,
-      recvTransport: Transport
-    ) => {
-      if (!recvTransport || !device) return;
-      socket.emit(
-        "consume",
-        {
-          producerId: producerId,
-          rtpCapabilities: device.rtpCapabilities,
-        },
-        async (params: any) => {
-          if (params.error) {
-            console.error("Cannot consume", params.error);
-            return;
-          }
-
-          const consumer = await recvTransport.consume({
-            id: params.id,
-            producerId: params.producerId,
-            kind: params.kind,
-            rtpParameters: params.rtpParameters,
-          });
-          console.log("consumer-->", consumer);
-          const newStream = new MediaStream([consumer.track]);
-          // setPeers((prev) => [...prev, { id: producerId, stream: newStream }]);
-          console.log("Local stream-->", localStream);
-          console.log("new Stream--->", newStream);
-        }
-      );
-    };
     const createRecvTransport = async () => {
       if (!device) return;
       socket.emit(
@@ -217,18 +186,60 @@ const MeetingRoom = () => {
               callback
             );
           });
-          console.log("recv trandport-->", transport);
           // await transport.connect();
-          setConsumerTransport(transport);
-          socket.on("new-producer", async ({ socketId, producerId, kind }) => {
-            console.log("socket.id-->", socketId, kind);
-            consumeMedia(producerId, transport);
-          });
+          setRecvTransport(transport);
         }
       );
     };
     createRecvTransport();
   }, []);
+  useEffect(() => {
+    const consumeMedia = async (
+      producerId: string,
+      recvTransport: Transport,
+      socketId: string
+    ) => {
+      if (!recvTransport || !device) return;
+      socket.emit(
+        "consume",
+        {
+          producerId: producerId,
+          rtpCapabilities: device.rtpCapabilities,
+          socketId,
+        },
+        async (params: any) => {
+          if (params.error) {
+            console.error("Cannot consume", params.error);
+            return;
+          }
+          const consumer = await recvTransport.consume({
+            id: params.producerInfo.id,
+            producerId: params.producerInfo.producerId,
+            kind: params.producerInfo.kind,
+            rtpParameters: params.producerInfo.rtpParameters,
+          });
+          const newStream = new MediaStream([consumer.track]);
+          setParticipants((prev) => [
+            ...prev,
+            {
+              id: params.userInfo.socketId,
+              name: params.userInfo.userName || "user",
+              stream: newStream,
+              videoEnabled: true,
+              audioEnabled: true,
+              isSpeaking: false,
+            },
+          ]);
+        }
+      );
+    };
+    if (recvTransport) {
+      socket.on("new-producer", async ({ socketId, producerId, kind }) => {
+        console.log("socket.id-->", socketId, kind);
+        consumeMedia(producerId, recvTransport, socketId);
+      });
+    }
+  }, [recvTransport]);
   const allParticipants = [localParticipant, ...participants];
 
   return (

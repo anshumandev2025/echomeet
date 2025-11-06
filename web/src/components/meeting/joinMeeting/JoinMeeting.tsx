@@ -30,7 +30,7 @@ const JoinMeeting = () => {
       // Add your join meeting logic here
       console.log("Joining room:", roomName);
       setCurrentRoomName(roomName);
-      socket.connect();
+      // socket.connect();
       updateMeetingState("lobby");
     } catch (error) {
       console.error("Error joining meeting:", error);

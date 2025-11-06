@@ -16,7 +16,7 @@ interface UserMediaSoupInterface {
   setDevice: (device: Device) => void;
   setRtpCapabilities: (rtpCapabilities: RtpCapabilities) => void;
   setProducerTransport: (transport: Transport) => void;
-  setConsumerTransport: (trasnport: Transport) => void;
+  setRecvTransport: (trasnport: Transport) => void;
 }
 
 const useMediaSoupState = create<UserMediaSoupInterface>((set) => ({
@@ -37,7 +37,7 @@ const useMediaSoupState = create<UserMediaSoupInterface>((set) => ({
   setRtpCapabilities: (value: RtpCapabilities) =>
     set({ rtpCapabilities: value }),
   setProducerTransport: (value: Transport) => set({ producerTransport: value }),
-  setConsumerTransport: (value: Transport) => set({ recvTransport: value }),
+  setRecvTransport: (value: Transport) => set({ recvTransport: value }),
 }));
 
 export default useMediaSoupState;

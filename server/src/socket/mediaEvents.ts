@@ -41,9 +41,17 @@ export const createTransport = async (
   socket: Socket,
   roomId: string,
   direction: string,
+  worker: msTypes.Worker,
   callback: any
 ) => {
-  const router = routers[roomId];
+  let router = routers[roomId];
+  if (!router) {
+    // Fallback: create router automatically
+    console.warn(`Router for room ${roomId} not found. Creating a new one.`);
+    router = routers[roomId] = await worker.createRouter({
+      mediaCodecs: mediasoupConfig.mediaCodecs,
+    });
+  }
   const transport = await createWebRtcTransport(router, direction);
   if (!peerTransports[socket.id]) {
     peerTransports[socket.id] = [];
@@ -95,10 +103,11 @@ export const handleConsume = async (
   socket: Socket,
   producerId: string,
   rtpCapabilities: msTypes.RtpCapabilities,
+  sockedId: string,
   callback: any
 ) => {
   try {
-    const { roomId } = socketToUser[socket.id];
+    const { roomId, userName } = socketToUser[sockedId];
     const router = routers[roomId];
 
     if (!router.canConsume({ producerId, rtpCapabilities })) {
@@ -122,12 +131,17 @@ export const handleConsume = async (
     // Store the consumer if needed
     if (!consumers[socket.id]) consumers[socket.id] = [];
     consumers[socket.id].push(consumer);
-
     callback({
-      id: consumer.id,
-      producerId,
-      kind: consumer.kind,
-      rtpParameters: consumer.rtpParameters,
+      producerInfo: {
+        id: consumer.id,
+        producerId,
+        kind: consumer.kind,
+        rtpParameters: consumer.rtpParameters,
+      },
+      userInfo: {
+        socketId: sockedId,
+        userName: userName,
+      },
     });
   } catch (err) {
     console.error("Error during consume:", err);
@@ -139,7 +153,7 @@ async function createWebRtcTransport(
   direction: string
 ): Promise<msTypes.WebRtcTransport> {
   const transport = await router.createWebRtcTransport({
-    listenIps: [{ ip: "0.0.0.0", announcedIp: "http://127.0.0.1:3000" }],
+    listenIps: [{ ip: "0.0.0.0", announcedIp: "127.0.0.1" }],
     enableUdp: true,
     enableTcp: true,
     preferUdp: true,

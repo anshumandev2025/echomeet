@@ -23,7 +23,6 @@ const ParticipantVideo: React.FC<ParticipantVideoProps> = ({
   className = "",
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-
   useEffect(() => {
     if (videoRef.current && participant.stream) {
       videoRef.current.srcObject = participant.stream;
