@@ -2,9 +2,9 @@ import dotenv from "dotenv";
 import express from "express";
 import { Server } from "socket.io";
 import cors from "cors";
-// import http from "http";
-import https from "https";
-import fs from "fs";
+import http from "http";
+// import https from "https";
+// import fs from "fs";
 import { disconnectHandler, joinRoom } from "./socket/roomEvents";
 import {
   connectTransport,
@@ -24,14 +24,14 @@ import { types as msTypes } from "mediasoup";
 dotenv.config();
 const connectToServer = () => {
   const app = express();
-  // const server = http.createServer(app);
-  const server = https.createServer(
-    {
-      key: fs.readFileSync("../localhost+1-key.pem"),
-      cert: fs.readFileSync("../localhost+1.pem"),
-    },
-    app
-  );
+  const server = http.createServer(app);
+  // const server = https.createServer(
+  //   {
+  //     key: fs.readFileSync("../localhost+1-key.pem"),
+  //     cert: fs.readFileSync("../localhost+1.pem"),
+  //   },
+  //   app
+  // );
   const io = new Server(server, { cors: { origin: "*" } });
   let worker: msTypes.Worker;
   (async () => {
