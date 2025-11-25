@@ -20,7 +20,7 @@ const MeetingHeader: React.FC<MeetingHeaderProps> = ({
         opacity: isVisible ? 1 : 0,
         y: isVisible ? 0 : -20,
       }}
-      className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/50 to-transparent p-4"
+      className="absolute top-0 left-0 right-0 z-20  from-black/50 to-transparent p-4"
     >
       <div className="flex items-center justify-between text-white">
         <div>

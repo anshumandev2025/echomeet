@@ -4,7 +4,13 @@ type RoomUsers = {
 };
 
 type SocketToUser = {
-  [socketId: string]: { userName: string; roomId: string };
+  [socketId: string]: {
+    userName: string;
+    roomId: string;
+    videoEnabled: boolean;
+    audioEnabled: boolean;
+    isSpeaking: boolean;
+  };
 };
 
 export const roomUsers: RoomUsers = {};

@@ -2,52 +2,16 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Send } from "lucide-react";
 import { Button, Input } from "antd";
-
+import { socket } from "../../../../socket/SocketConnect";
+import useUserState from "../../../../store/userState";
+import { useSearchParams } from "react-router-dom";
+import useChatState from "../../../../store/chatState";
 const ChatComponent = () => {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      user: "John Doe",
-      message: "Hey everyone! Thanks for joining the meeting today.",
-      timestamp: "10:30 AM",
-      isMe: false,
-    },
-    {
-      id: 2,
-      user: "Sarah Wilson",
-      message: "Great to be here! Looking forward to the discussion.",
-      timestamp: "10:31 AM",
-      isMe: false,
-    },
-    {
-      id: 3,
-      user: "You",
-      message: "Perfect! Let me share my screen in a moment.",
-      timestamp: "10:32 AM",
-      isMe: true,
-    },
-    {
-      id: 4,
-      user: "Mike Johnson",
-      message: "The audio quality is excellent today 👍",
-      timestamp: "10:33 AM",
-      isMe: false,
-    },
-    {
-      id: 5,
-      user: "Emily Chen",
-      message: "Can you hear me clearly? I just joined from mobile.",
-      timestamp: "10:34 AM",
-      isMe: false,
-    },
-    {
-      id: 6,
-      user: "You",
-      message: "Yes, we can hear you perfectly! Welcome Emily.",
-      timestamp: "10:35 AM",
-      isMe: true,
-    },
-  ]);
+  const { messages, setMessages } = useChatState();
+
+  const { userName } = useUserState();
+  const [searchParams] = useSearchParams();
+  const roomId = searchParams.get("roomId");
 
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
@@ -65,7 +29,7 @@ const ChatComponent = () => {
   const handleSendMessage = () => {
     if (newMessage.trim()) {
       const newMsg = {
-        id: messages.length + 1,
+        id: Date.now(),
         user: "You",
         message: newMessage,
         timestamp: new Date().toLocaleTimeString([], {
@@ -74,11 +38,19 @@ const ChatComponent = () => {
         }),
         isMe: true,
       };
-      setMessages([...messages, newMsg]);
+      setMessages(newMsg);
+      socket.emit("send-new-message", {
+        roomId,
+        userName,
+        newMessage,
+        timeStamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      });
       setNewMessage("");
     }
   };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

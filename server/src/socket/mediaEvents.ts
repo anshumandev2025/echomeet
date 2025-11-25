@@ -107,7 +107,8 @@ export const handleConsume = async (
   callback: any
 ) => {
   try {
-    const { roomId, userName } = socketToUser[sockedId];
+    const { roomId, userName, videoEnabled, audioEnabled, isSpeaking } =
+      socketToUser[sockedId];
     const router = routers[roomId];
 
     if (!router.canConsume({ producerId, rtpCapabilities })) {
@@ -141,12 +142,103 @@ export const handleConsume = async (
       userInfo: {
         socketId: sockedId,
         userName: userName,
+        videoEnabled,
+        audioEnabled,
+        isSpeaking,
       },
     });
   } catch (err) {
     console.error("Error during consume:", err);
     callback({ error: "Internal server error during consume" });
   }
+};
+
+export const handleResumeProducerVideo = (socketId: string, socket: Socket) => {
+  // const peerConsumers = consumers[socketId];
+  // if (!peerConsumers) return;
+  // console.log("consumer resumed");
+
+  // for (const consumer of peerConsumers) {
+  //   consumer.resume();
+  // }
+  const { roomId } = socketToUser[socketId];
+  socketToUser[socketId].videoEnabled = true;
+  socket.to(roomId).emit("user-resume-video", { socketId });
+};
+
+export const handlePausedProducerVideo = (socketId: string, socket: Socket) => {
+  // const peerConsumers = consumers[socketId];
+  // if (!peerConsumers) return;
+  // console.log("consumer paused");
+  // for (const consumer of peerConsumers) {
+  //   console.log("consumer.id", consumer.id);
+  //   consumer.pause();
+  // }
+  const { roomId } = socketToUser[socketId];
+  socketToUser[socketId].videoEnabled = false;
+  socket.to(roomId).emit("user-paused-video", { socketId });
+};
+
+export const handlePausedProducerAudio = (socketId: string, socket: Socket) => {
+  // const peerConsumers = consumers[socketId];
+  // if (!peerConsumers) return;
+  // console.log("consumer paused");
+  // for (const consumer of peerConsumers) {
+  //   console.log("consumer.id", consumer.id);
+  //   consumer.pause();
+  // }
+  const { roomId } = socketToUser[socketId];
+  socketToUser[socketId].audioEnabled = false;
+  socket.to(roomId).emit("user-paused-audio", { socketId });
+};
+
+export const handleResumeProducerAudio = (socketId: string, socket: Socket) => {
+  // const peerConsumers = consumers[socketId];
+  // if (!peerConsumers) return;
+  // console.log("consumer resumed");
+
+  // for (const consumer of peerConsumers) {
+  //   consumer.resume();
+  // }
+  const { roomId } = socketToUser[socketId];
+  socketToUser[socketId].audioEnabled = true;
+  socket.to(roomId).emit("user-resume-audio", { socketId });
+};
+export const handleGetAllProducers = (socketId: string, callback: any) => {
+  const user = socketToUser[socketId];
+  if (!user) return callback({ producers: [] });
+
+  const roomId = user.roomId;
+
+  const allProducers: any[] = [];
+
+  for (const [peerSocketId, peerProducers] of Object.entries(producers)) {
+    // skip own producers
+    if (peerSocketId === socketId) continue;
+
+    // skip producers not in same room
+    if (socketToUser[peerSocketId]?.roomId !== roomId) continue;
+
+    peerProducers.forEach((p) => {
+      allProducers.push({
+        socketId: peerSocketId,
+        producerId: p.id,
+        kind: p.kind,
+      });
+    });
+  }
+  callback({ producers: allProducers });
+};
+export const handleNewMessage = (
+  roomId: string,
+  userName: string,
+  newMessage: string,
+  timeStamp: string,
+  socket: Socket
+) => {
+  socket
+    .to(roomId)
+    .emit("receive-new-message", { userName, newMessage, timeStamp });
 };
 async function createWebRtcTransport(
   router: msTypes.Router,

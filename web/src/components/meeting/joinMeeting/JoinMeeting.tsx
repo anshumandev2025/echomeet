@@ -7,16 +7,21 @@ import {
 } from "../../../utils/helperFunctions";
 import { useGlobalMessage } from "../../../context/MessageProvider";
 import useCurrentMeetingState from "../../../store/meetingState";
-import { socket } from "../../../socket/SocketConnect";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const JoinMeeting = () => {
-  const [roomName, setRoomName] = useState("");
+  const [searchParams] = useSearchParams();
+  const roomId = searchParams.get("roomId");
+  const [roomName, setRoomName] = useState(roomId || "");
   const [loading, setLoading] = useState(false);
   const { showMessage } = useGlobalMessage();
   const { setCurrentRoomName, updateMeetingState } = useCurrentMeetingState();
+  const navigate = useNavigate();
   useEffect(() => {
     // Generate initial room name on component mount
-    setRoomName(generateRoomName());
+    if (!roomName) {
+      setRoomName(generateRoomName());
+    }
   }, []);
 
   const handleJoinMeeting = async () => {
@@ -31,6 +36,7 @@ const JoinMeeting = () => {
       console.log("Joining room:", roomName);
       setCurrentRoomName(roomName);
       // socket.connect();
+      navigate(`/meeting?roomId=${roomName}`);
       updateMeetingState("lobby");
     } catch (error) {
       console.error("Error joining meeting:", error);
@@ -98,7 +104,7 @@ const JoinMeeting = () => {
               </Button>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Room names are 8 characters long (e.g., xa2rx0kl)
+              Room names are 9 characters long (e.g., y75-zxk-vze)
             </p>
           </div>
 

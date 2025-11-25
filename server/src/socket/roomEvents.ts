@@ -4,7 +4,7 @@ import { cleanupPeer } from "./mediaEvents";
 
 export const joinRoom = (
   socket: Socket,
-  { roomId, userName }: JoinRoomType
+  { roomId, userName, audioEnabled, videoEnabled, isSpeaking }: JoinRoomType
 ) => {
   console.log(
     `User ${userName} with socket it ${socket.id} joining room ${roomId}`
@@ -14,7 +14,13 @@ export const joinRoom = (
     roomUsers[roomId] = new Set();
   }
   roomUsers[roomId].add(userName);
-  socketToUser[socket.id] = { userName, roomId };
+  socketToUser[socket.id] = {
+    userName,
+    roomId,
+    audioEnabled,
+    videoEnabled,
+    isSpeaking,
+  };
   socket.to(roomId).emit("user-joined", {
     userName,
     socketId: socket.id,

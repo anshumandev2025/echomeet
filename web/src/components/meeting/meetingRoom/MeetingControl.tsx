@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Button, Drawer, Tooltip } from "antd";
+import React, { useEffect, useRef, useState } from "react";
+import { Badge, Button, Drawer, Tooltip } from "antd";
 import {
   Video,
   VideoOff,
@@ -8,11 +8,12 @@ import {
   PhoneOff,
   Users,
   MessageSquare,
-  Monitor,
-  UserX,
 } from "lucide-react";
 import ChatComponent from "./chat/Chat";
 import ParticipantsList from "./participant/ParticipantList";
+import type { Participant } from "../../../types/MediaTypes";
+import useChatState from "../../../store/chatState";
+import { socket } from "../../../socket/SocketConnect";
 
 interface MeetingControlsProps {
   videoEnabled: boolean;
@@ -20,27 +21,45 @@ interface MeetingControlsProps {
   onToggleVideo: () => void;
   onToggleAudio: () => void;
   onLeaveCall: () => void;
-  onAddParticipant?: () => void;
-  onRemoveParticipant?: () => void;
-  canRemoveParticipant?: boolean;
-  showDemoControls?: boolean;
+  participants: Participant[];
 }
-
 const MeetingControls: React.FC<MeetingControlsProps> = ({
   videoEnabled,
   audioEnabled,
   onToggleVideo,
   onToggleAudio,
   onLeaveCall,
-  onAddParticipant,
-  onRemoveParticipant,
-  canRemoveParticipant = false,
-  showDemoControls = false,
+  participants,
 }) => {
   const [openChat, setOpenChat] = useState(false);
   const [openParticipants, setOpenParticipants] = useState(false);
+  const { unreadMessageCount, setUnreadMessageCount, setMessages } =
+    useChatState();
+  const unreadMessageCountRef = useRef(unreadMessageCount);
+  useEffect(() => {
+    socket.on("receive-new-message", ({ userName, newMessage, timeStamp }) => {
+      const newMsg = {
+        id: Date.now(),
+        user: userName,
+        message: newMessage,
+        timestamp: timeStamp,
+        isMe: false,
+      };
+      setMessages(newMsg);
+      if (openChat) {
+        setUnreadMessageCount(0);
+        unreadMessageCountRef.current = 0;
+      } else {
+        unreadMessageCountRef.current++;
+        setUnreadMessageCount(unreadMessageCountRef.current);
+      }
+    });
+    return () => {
+      socket.off("receive-new-message");
+    };
+  }, []);
   return (
-    <div className="bg-gradient-to-t from-black/70 to-transparent md:p-6">
+    <div className=" from-black/70 to-transparent md:p-6">
       <div className="flex items-center justify-center">
         <div className="bg-gray-800/90 backdrop-blur-sm rounded-2xl px-6 py-4 shadow-2xl border border-gray-700">
           <div className="flex items-center gap-2 md:gap-4">
@@ -81,24 +100,30 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
             </Tooltip>
 
             {/* Screen share */}
-            <Tooltip title="Share screen">
+            {/* <Tooltip title="Share screen">
               <Button
                 shape="circle"
                 size="large"
                 className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600 w-12 h-12 flex items-center justify-center"
                 icon={<Monitor size={20} />}
               />
-            </Tooltip>
+            </Tooltip> */}
 
             {/* Chat */}
             <Tooltip title="Chat">
-              <Button
-                onClick={() => setOpenChat(true)}
-                shape="circle"
-                size="large"
-                className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600 w-12 h-12 flex items-center justify-center"
-                icon={<MessageSquare size={20} />}
-              />
+              <Badge count={unreadMessageCountRef.current} showZero={false}>
+                <Button
+                  onClick={() => {
+                    setOpenChat(true);
+                    setUnreadMessageCount(0);
+                    unreadMessageCountRef.current = 0;
+                  }}
+                  shape="circle"
+                  size="large"
+                  className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600 w-12 h-12 flex items-center justify-center"
+                  icon={<MessageSquare size={20} />}
+                />
+              </Badge>
             </Tooltip>
 
             {/* Participants */}
@@ -150,7 +175,7 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
       </div>
 
       {/* Demo controls */}
-      {showDemoControls && (
+      {/* {showDemoControls && (
         <div className="flex justify-center mt-4 gap-2">
           <Button
             size="small"
@@ -169,7 +194,7 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
             Remove
           </Button>
         </div>
-      )}
+      )} */}
       <Drawer
         title="Chat"
         closable={{ "aria-label": "Close Button" }}
@@ -185,7 +210,7 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
         onClose={() => setOpenParticipants(false)}
         open={openParticipants}
       >
-        <ParticipantsList />
+        <ParticipantsList participants={participants} />
       </Drawer>
     </div>
   );

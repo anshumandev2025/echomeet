@@ -27,8 +27,7 @@ const ParticipantVideo: React.FC<ParticipantVideoProps> = ({
     if (videoRef.current && participant.stream) {
       videoRef.current.srcObject = participant.stream;
     }
-  }, [participant.stream]);
-
+  }, [participant.stream, participant.videoEnabled]);
   return (
     <motion.div
       layout

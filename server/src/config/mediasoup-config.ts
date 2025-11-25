@@ -12,7 +12,11 @@ export const mediasoupConfig = {
   // 📡 WebRTC transport settings
   transportOptions: {
     listenIps: [
-      { ip: "0.0.0.0", announcedIp: "192.168.29.155" }, // replace with your public IP if deployed
+      {
+        // 1. For clients on the Public Internet
+        ip: "0.0.0.0",
+        announcedIp: process.env.ANNOUNCED_IP, // Your Public IP
+      },
     ],
     enableUdp: true,
     enableTcp: true,

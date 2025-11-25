@@ -14,12 +14,15 @@ import { Device } from "mediasoup-client";
 import type {
   CreateTransportType,
   MediaDeviceType,
+  Participant,
 } from "../../../types/MediaTypes";
 import type { RtpCapabilities } from "mediasoup-client/types";
 
 const { Option } = Select;
-
-const LobbyRoom = () => {
+type LobbyRoomProps = {
+  setLocalParticipant: React.Dispatch<React.SetStateAction<Participant>>;
+};
+const LobbyRoom = ({ setLocalParticipant }: LobbyRoomProps) => {
   const { roomName, setLocalStream, updateMeetingState } =
     useCurrentMeetingState();
   const {
@@ -75,47 +78,44 @@ const LobbyRoom = () => {
 
   const initializeMedia = async () => {
     setIsLoading(true);
-    const {
-      videoDevices,
-      audioDevices,
-      error: devicesError,
-    } = await getMediaDevices();
 
-    if (devicesError) {
-      message.error("Failed to get media devices");
+    // 1️⃣ Wait until browser updates permission state
+    try {
+      await Promise.all([
+        navigator.permissions.query({ name: "camera" as PermissionName }),
+        navigator.permissions.query({ name: "microphone" as PermissionName }),
+      ]);
+    } catch {}
+
+    // 2️⃣ Request stream FIRST (so device list unlocks)
+    const { stream: mediaStream, error: streamError } =
+      await getUserMediaStream({ video: true, audio: true });
+
+    if (streamError || !mediaStream) {
+      message.error("Failed to access camera/microphone");
       setIsLoading(false);
       return;
     }
+
+    setStream(mediaStream);
+    setLocalStream(mediaStream);
+
+    // 3️⃣ Assign stream to video element
+    if (videoRef.current) videoRef.current.srcObject = mediaStream;
+    if (hiddenVideoRef.current) hiddenVideoRef.current.srcObject = mediaStream;
+
+    // 4️⃣ NOW get device list — after permission is granted
+    const { videoDevices, audioDevices } = await getMediaDevices();
 
     setVideoDevices(videoDevices);
     setAudioDevices(audioDevices);
 
     if (videoDevices.length > 0)
       setSelectedVideoDevice(videoDevices[0].deviceId);
+
     if (audioDevices.length > 0)
       setSelectedAudioDevice(audioDevices[0].deviceId);
 
-    const { stream: mediaStream, error: streamError } =
-      await getUserMediaStream({
-        video:
-          videoDevices.length > 0
-            ? { deviceId: videoDevices[0].deviceId }
-            : false,
-        audio:
-          audioDevices.length > 0
-            ? { deviceId: audioDevices[0].deviceId }
-            : false,
-      });
-
-    if (streamError || !mediaStream) {
-      message.error("Failed to access camera and microphone");
-      setIsLoading(false);
-      return;
-    }
-    setLocalStream(mediaStream);
-    setStream(mediaStream);
-    if (videoRef.current) videoRef.current.srcObject = mediaStream;
-    if (hiddenVideoRef.current) hiddenVideoRef.current.srcObject = mediaStream;
     setIsLoading(false);
   };
 
@@ -142,6 +142,10 @@ const LobbyRoom = () => {
     }
     setLocalStream(newStream);
     setStream(newStream);
+    setLocalParticipant((prev) => ({
+      ...prev,
+      stream: newStream,
+    }));
     if (videoRef.current) videoRef.current.srcObject = newStream;
     if (hiddenVideoRef.current) hiddenVideoRef.current.srcObject = newStream;
   };
@@ -155,6 +159,10 @@ const LobbyRoom = () => {
       }
       return newState;
     });
+    setLocalParticipant((prev) => ({
+      ...prev,
+      videoEnabled: !prev.videoEnabled,
+    }));
   };
 
   const toggleMicrophone = () => {
@@ -166,6 +174,10 @@ const LobbyRoom = () => {
       }
       return newState;
     });
+    setLocalParticipant((prev) => ({
+      ...prev,
+      audioEnabled: !prev.audioEnabled,
+    }));
   };
 
   const handleJoinMeeting = async () => {
@@ -175,7 +187,13 @@ const LobbyRoom = () => {
       return;
     }
     setUserName(name);
-    socket.emit("join-room", { roomId: roomName, userName: name });
+    socket.emit("join-room", {
+      roomId: roomName,
+      userName: name,
+      videoEnabled: isCameraOn,
+      audioEnabled: isMicOn,
+      isSpeaking: false,
+    });
     socket.emit(
       "get-rtp-capabilities",
       { roomId: roomName },
@@ -420,6 +438,11 @@ const LobbyRoom = () => {
                       onClick={handleJoinMeeting}
                       disabled={isLoading}
                       className="h-12 text-lg font-semibold"
+                      // style={{
+                      //   backgroundColor: "#3B82F6", // blue-500
+                      //   borderColor: "#3B82F6",
+                      //   boxShadow: "0 4px 14px 0 rgba(59, 130, 246, 0.39)",
+                      // }}
                       style={{
                         backgroundColor: "#10b981",
                         borderColor: "#10b981",

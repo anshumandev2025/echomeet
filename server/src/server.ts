@@ -1,7 +1,8 @@
+import dotenv from "dotenv";
 import express from "express";
 import { Server } from "socket.io";
 import cors from "cors";
-import http from "http";
+// import http from "http";
 import https from "https";
 import fs from "fs";
 import { disconnectHandler, joinRoom } from "./socket/roomEvents";
@@ -10,11 +11,17 @@ import {
   createTransport,
   getRTPCapabilities,
   handleConsume,
+  handleGetAllProducers,
+  handleNewMessage,
+  handlePausedProducerAudio,
+  handlePausedProducerVideo,
   handleProduce,
+  handleResumeProducerAudio,
+  handleResumeProducerVideo,
   initMediasoupWorker,
 } from "./socket/mediaEvents";
 import { types as msTypes } from "mediasoup";
-
+dotenv.config();
 const connectToServer = () => {
   const app = express();
   // const server = http.createServer(app);
@@ -57,6 +64,28 @@ const connectToServer = () => {
       "consume",
       ({ producerId, rtpCapabilities, socketId }, callback) =>
         handleConsume(socket, producerId, rtpCapabilities, socketId, callback)
+    );
+    socket.on("resume-producer-video", (socketId) => {
+      handleResumeProducerVideo(socketId, socket);
+    });
+    socket.on("paused-producer-video", (socketId) => {
+      handlePausedProducerVideo(socketId, socket);
+    });
+
+    socket.on("paused-producer-audio", (socketId) => {
+      handlePausedProducerAudio(socketId, socket);
+    });
+
+    socket.on("resume-producer-audio", (socketId) => {
+      handleResumeProducerAudio(socketId, socket);
+    });
+    socket.on("get-all-producers", ({ socketId }, callback) =>
+      handleGetAllProducers(socketId, callback)
+    );
+    socket.on(
+      "send-new-message",
+      ({ roomId, userName, newMessage, timeStamp }) =>
+        handleNewMessage(roomId, userName, newMessage, timeStamp, socket)
     );
     socket.on("disconnect", () => disconnectHandler(socket));
   });

@@ -19,8 +19,15 @@ export type CreateTransportType = {
 export type Participant = {
   id: string;
   name: string;
+  socketId: string | null;
   stream: MediaStream | null;
   videoEnabled: boolean;
   audioEnabled: boolean;
   isSpeaking: boolean;
+};
+
+export type ProducersData = {
+  socketId: string;
+  producerId: string;
+  kind: string;
 };
