@@ -65,3 +65,6 @@ dump/
 *.tgz
 .cache/
 coverage/
+
+localhost+1-key.pem
+localhost+1.pem
