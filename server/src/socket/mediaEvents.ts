@@ -245,10 +245,7 @@ async function createWebRtcTransport(
   direction: string
 ): Promise<msTypes.WebRtcTransport> {
   const transport = await router.createWebRtcTransport({
-    listenIps: [{ ip: "0.0.0.0", announcedIp: "127.0.0.1" }],
-    enableUdp: true,
-    enableTcp: true,
-    preferUdp: true,
+    ...mediasoupConfig.transportOptions,
     appData: { direction }, // can set direction here: send / recv
   });
 
