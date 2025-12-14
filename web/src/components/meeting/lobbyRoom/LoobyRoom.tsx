@@ -85,7 +85,9 @@ const LobbyRoom = ({ setLocalParticipant }: LobbyRoomProps) => {
         navigator.permissions.query({ name: "camera" as PermissionName }),
         navigator.permissions.query({ name: "microphone" as PermissionName }),
       ]);
-    } catch {}
+    } catch (error) {
+      console.log("error", error);
+    }
 
     // 2️⃣ Request stream FIRST (so device list unlocks)
     const { stream: mediaStream, error: streamError } =
