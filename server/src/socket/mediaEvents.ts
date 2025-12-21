@@ -5,6 +5,7 @@ import {
   consumers,
   peerTransports,
   producers,
+  roomUsers,
   routers,
   socketToUser,
 } from "./roomState";
@@ -153,7 +154,7 @@ export const handleConsume = async (
   }
 };
 
-export const handleResumeProducerVideo = (socketId: string, socket: Socket) => {
+export const handleResumeProducerVideo = (socketId: string, io: any) => {
   // const peerConsumers = consumers[socketId];
   // if (!peerConsumers) return;
   // console.log("consumer resumed");
@@ -163,10 +164,10 @@ export const handleResumeProducerVideo = (socketId: string, socket: Socket) => {
   // }
   const { roomId } = socketToUser[socketId];
   socketToUser[socketId].videoEnabled = true;
-  socket.to(roomId).emit("user-resume-video", { socketId });
+  io.to(roomId).emit("user-resume-video", { socketId });
 };
 
-export const handlePausedProducerVideo = (socketId: string, socket: Socket) => {
+export const handlePausedProducerVideo = (socketId: string, io: any) => {
   // const peerConsumers = consumers[socketId];
   // if (!peerConsumers) return;
   // console.log("consumer paused");
@@ -176,10 +177,10 @@ export const handlePausedProducerVideo = (socketId: string, socket: Socket) => {
   // }
   const { roomId } = socketToUser[socketId];
   socketToUser[socketId].videoEnabled = false;
-  socket.to(roomId).emit("user-paused-video", { socketId });
+  io.to(roomId).emit("user-paused-video", { socketId });
 };
 
-export const handlePausedProducerAudio = (socketId: string, socket: Socket) => {
+export const handlePausedProducerAudio = (socketId: string, io: any) => {
   // const peerConsumers = consumers[socketId];
   // if (!peerConsumers) return;
   // console.log("consumer paused");
@@ -189,10 +190,10 @@ export const handlePausedProducerAudio = (socketId: string, socket: Socket) => {
   // }
   const { roomId } = socketToUser[socketId];
   socketToUser[socketId].audioEnabled = false;
-  socket.to(roomId).emit("user-paused-audio", { socketId });
+  io.to(roomId).emit("user-paused-audio", { socketId });
 };
 
-export const handleResumeProducerAudio = (socketId: string, socket: Socket) => {
+export const handleResumeProducerAudio = (socketId: string, io: any) => {
   // const peerConsumers = consumers[socketId];
   // if (!peerConsumers) return;
   // console.log("consumer resumed");
@@ -202,14 +203,19 @@ export const handleResumeProducerAudio = (socketId: string, socket: Socket) => {
   // }
   const { roomId } = socketToUser[socketId];
   socketToUser[socketId].audioEnabled = true;
-  socket.to(roomId).emit("user-resume-audio", { socketId });
+  io.to(roomId).emit("user-resume-audio", { socketId });
 };
-export const handleGetAllProducers = (socketId: string, callback: any) => {
+export const handleGetAllProducers = (
+  socketId: string,
+  socket: Socket,
+  callback: any
+) => {
   const user = socketToUser[socketId];
   if (!user) return callback({ producers: [] });
 
   const roomId = user.roomId;
-
+  const allSocketIdsInRoom = roomUsers[roomId];
+  const remaningUsers = [];
   const allProducers: any[] = [];
 
   for (const [peerSocketId, peerProducers] of Object.entries(producers)) {
@@ -218,7 +224,7 @@ export const handleGetAllProducers = (socketId: string, callback: any) => {
 
     // skip producers not in same room
     if (socketToUser[peerSocketId]?.roomId !== roomId) continue;
-
+    allSocketIdsInRoom.delete(peerSocketId);
     peerProducers.forEach((p) => {
       allProducers.push({
         socketId: peerSocketId,
@@ -227,6 +233,18 @@ export const handleGetAllProducers = (socketId: string, callback: any) => {
       });
     });
   }
+  for (let id of allSocketIdsInRoom) {
+    const remaningUser = socketToUser[id];
+    if (!remaningUser) continue;
+    remaningUsers.push({
+      userName: remaningUser.userName,
+      socketId: id,
+      audioEnabled: remaningUser.audioEnabled,
+      videoEnabled: remaningUser.videoEnabled,
+      isSpeaking: remaningUser.isSpeaking,
+    });
+  }
+  socket.emit("get-all-users", remaningUsers);
   callback({ producers: allProducers });
 };
 export const handleNewMessage = (
@@ -240,6 +258,7 @@ export const handleNewMessage = (
     .to(roomId)
     .emit("receive-new-message", { userName, newMessage, timeStamp });
 };
+
 async function createWebRtcTransport(
   router: msTypes.Router,
   direction: string

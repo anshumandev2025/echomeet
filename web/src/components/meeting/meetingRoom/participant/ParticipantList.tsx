@@ -1,51 +1,66 @@
 import { motion, AnimatePresence } from "motion/react";
-import { Badge, Avatar, Tooltip } from "antd";
-import { Mic, MicOff, Video, VideoOff } from "lucide-react";
+import { Badge, Avatar, Tooltip, Dropdown, type MenuProps, Button } from "antd";
+import { Mic, MicOff, PhoneOff, Video, VideoOff } from "lucide-react";
 import type { Participant } from "../../../../types/MediaTypes";
+import { MoreOutlined } from "@ant-design/icons";
+import { useEffect, useState } from "react";
+import { socket } from "../../../../socket/SocketConnect";
 
 const ParticipantsList = ({
   participants,
 }: {
   participants: Participant[];
 }) => {
-  // const getParticipantMenuItems = (
-  //   participant: Participant
-  // ): MenuProps["items"] => [
-  //   {
-  //     key: "mute",
-  //     label: participant.audioEnabled ? "Unmute" : "Mute",
-  //     icon: participant.audioEnabled ? <Mic size={14} /> : <MicOff size={14} />,
-  //   },
-  //   {
-  //     key: "video",
-  //     label: participant.videoEnabled ? "Turn off camera" : "Turn on camera",
-  //     icon: participant.videoEnabled ? (
-  //       <VideoOff size={14} />
-  //     ) : (
-  //       <Video size={14} />
-  //     ),
-  //   },
-  //   {
-  //     type: "divider",
-  //   },
-  //   {
-  //     key: "remove",
-  //     label: "Remove from meeting",
-  //     icon: <PhoneOff size={14} />,
-  //     danger: true,
-  //   },
-  //   {
-  //     key: "block",
-  //     label: "Block participant",
-  //     icon: <VolumeX size={14} />,
-  //     danger: true,
-  //   },
-  // ];
+  const [isHost, setIsHost] = useState(false);
+  const getParticipantMenuItems = (
+    participant: Participant
+  ): MenuProps["items"] => [
+    {
+      key: "audio",
+      label: participant.audioEnabled ? "Mute" : "Unmute",
+      icon: participant.audioEnabled ? <MicOff size={14} /> : <Mic size={14} />,
+    },
+    {
+      key: "video",
+      label: participant.videoEnabled ? "Turn off camera" : "Turn on camera",
+      icon: participant.videoEnabled ? (
+        <VideoOff size={14} />
+      ) : (
+        <Video size={14} />
+      ),
+    },
+    {
+      type: "divider",
+    },
+    {
+      key: "remove",
+      label: "Remove from meeting",
+      icon: <PhoneOff size={14} />,
+      danger: true,
+    },
+    // {
+    //   key: "block",
+    //   label: "Block participant",
+    //   icon: <VolumeX size={14} />,
+    //   danger: true,
+    // },
+  ];
 
-  // const handleMenuClick = (key: string, participant: Participant) => {
-  //   console.log(`Action: ${key} for participant: ${participant.name}`);
-  //   // Handle participant actions here
-  // };
+  const handleMenuClick = (key: string, participant: Participant) => {
+    console.log(`Action: ${key} for participant: ${participant.name}`);
+    // Handle participant actions here
+    if (key == "audio" && participant.audioEnabled) {
+      socket.emit("paused-producer-audio", participant.socketId);
+    } else if (key == "audio" && !participant.audioEnabled) {
+      socket.emit("resume-producer-audio", participant.socketId);
+    } else if (key == "video" && participant.videoEnabled) {
+      socket.emit("paused-producer-video", participant.socketId);
+    } else if (key == "video" && !participant.videoEnabled) {
+      socket.emit("resume-producer-video", participant.socketId);
+    } else {
+      socket.emit("remove-user", participant.socketId);
+    }
+  };
 
   const getInitials = (name: string) => {
     return name
@@ -61,6 +76,17 @@ const ParticipantsList = ({
     return "#6b7280"; // gray
   };
 
+  useEffect(() => {
+    const handleIsHost = (data: any) => {
+      if (data.error) {
+        return;
+      }
+      setIsHost(data.host);
+    };
+    socket.emit("is-host", { socketId: socket.id }, handleIsHost);
+  }, []);
+  console.log("Participants-->", participants);
+  console.log("Socket.io", socket.id);
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Participants List */}
@@ -154,22 +180,26 @@ const ParticipantsList = ({
                   </Tooltip>
 
                   {/* More Options */}
-                  {/* <Dropdown
-                    menu={{
-                      items: getParticipantMenuItems(participant),
-                      onClick: ({ key }) =>
-                        handleMenuClick(key as string, participant),
-                    }}
-                    trigger={["click"]}
-                    placement="bottomRight"
-                  >
-                    <Button
-                      type="text"
-                      icon={<MoreOutlined />}
-                      size="small"
-                      className="text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                    />
-                  </Dropdown> */}
+                  {isHost &&
+                    participant.socketId &&
+                    participant.socketId != socket.id && (
+                      <Dropdown
+                        menu={{
+                          items: getParticipantMenuItems(participant),
+                          onClick: ({ key }) =>
+                            handleMenuClick(key as string, participant),
+                        }}
+                        trigger={["click"]}
+                        placement="bottomRight"
+                      >
+                        <Button
+                          type="text"
+                          icon={<MoreOutlined />}
+                          size="small"
+                          className="text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                        />
+                      </Dropdown>
+                    )}
                 </div>
               </div>
             </motion.div>

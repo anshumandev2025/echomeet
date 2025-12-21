@@ -111,7 +111,10 @@ const MeetingControls: React.FC<MeetingControlsProps> = ({
 
             {/* Chat */}
             <Tooltip title="Chat">
-              <Badge count={unreadMessageCountRef.current} showZero={false}>
+              <Badge
+                count={openChat ? 0 : unreadMessageCountRef.current}
+                showZero={false}
+              >
                 <Button
                   onClick={() => {
                     setOpenChat(true);

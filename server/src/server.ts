@@ -3,9 +3,15 @@ import express from "express";
 import { Server } from "socket.io";
 import cors from "cors";
 import http from "http";
-// import https from "https";
-// import fs from "fs";
-import { disconnectHandler, joinRoom } from "./socket/roomEvents";
+import https from "https";
+import fs from "fs";
+import {
+  disconnectHandler,
+  getRoomTimeStamp,
+  handleIsHost,
+  handleRemoveUser,
+  joinRoom,
+} from "./socket/roomEvents";
 import {
   connectTransport,
   createTransport,
@@ -24,14 +30,14 @@ import { types as msTypes } from "mediasoup";
 dotenv.config();
 const connectToServer = () => {
   const app = express();
-  const server = http.createServer(app);
-  // const server = https.createServer(
-  //   {
-  //     key: fs.readFileSync("../localhost+1-key.pem"),
-  //     cert: fs.readFileSync("../localhost+1.pem"),
-  //   },
-  //   app
-  // );
+  // const server = http.createServer(app);
+  const server = https.createServer(
+    {
+      key: fs.readFileSync("../cert.key"),
+      cert: fs.readFileSync("../cert.crt"),
+    },
+    app
+  );
   const io = new Server(server, { cors: { origin: "*" } });
   let worker: msTypes.Worker;
   (async () => {
@@ -42,6 +48,15 @@ const connectToServer = () => {
     console.log("Client connected to socket with id ", socket.id);
     socket.on("join-room", (data) => joinRoom(socket, data));
 
+    socket.on("is-host", ({ socketId }, callback) => {
+      handleIsHost(socketId, callback);
+    });
+    socket.on("remove-user", (sockedId) => {
+      handleRemoveUser(sockedId, io, socket);
+    });
+    socket.on("get-room-timestamp", ({ roomId }, callback) => {
+      getRoomTimeStamp(roomId, callback);
+    });
     socket.on("get-rtp-capabilities", ({ roomId }, callback) =>
       getRTPCapabilities(worker, roomId, callback)
     );
@@ -66,21 +81,21 @@ const connectToServer = () => {
         handleConsume(socket, producerId, rtpCapabilities, socketId, callback)
     );
     socket.on("resume-producer-video", (socketId) => {
-      handleResumeProducerVideo(socketId, socket);
+      handleResumeProducerVideo(socketId, io);
     });
     socket.on("paused-producer-video", (socketId) => {
-      handlePausedProducerVideo(socketId, socket);
+      handlePausedProducerVideo(socketId, io);
     });
 
     socket.on("paused-producer-audio", (socketId) => {
-      handlePausedProducerAudio(socketId, socket);
+      handlePausedProducerAudio(socketId, io);
     });
 
     socket.on("resume-producer-audio", (socketId) => {
-      handleResumeProducerAudio(socketId, socket);
+      handleResumeProducerAudio(socketId, io);
     });
     socket.on("get-all-producers", ({ socketId }, callback) =>
-      handleGetAllProducers(socketId, callback)
+      handleGetAllProducers(socketId, socket, callback)
     );
     socket.on(
       "send-new-message",

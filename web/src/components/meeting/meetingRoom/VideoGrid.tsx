@@ -22,85 +22,136 @@ const VideoGrid: React.FC<VideoGridProps> = ({
 }) => {
   const allParticipants = [localParticipant, ...participants];
   const participantCount = allParticipants.length;
-  // console.log("participant--->", participants);
-  // Helper function to get grid configuration based on screen size and participant count
+
+  // Get grid configuration based on participant count (Google Meet style)
   const getGridConfig = (count: number) => {
-    // Check if we're on mobile (you can also use a proper hook for this)
     const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
     if (count === 1) {
-      return { columns: 1, rows: 1, isScrollable: false };
+      return { columns: 1, rows: 1, gap: "0px" };
     } else if (count === 2) {
-      // On mobile: stack vertically, on desktop: side by side
       return isMobile
-        ? { columns: 1, rows: 2, isScrollable: false }
-        : { columns: 2, rows: 1, isScrollable: false };
-    } else if (count === 3) {
-      // On mobile: 2 columns with scrolling, on desktop: 3 columns
+        ? { columns: 1, rows: 2, gap: "8px" }
+        : { columns: 2, rows: 1, gap: "12px" };
+    } else if (count <= 4) {
+      return { columns: 2, rows: 2, gap: isMobile ? "8px" : "12px" };
+    } else if (count <= 6) {
       return isMobile
-        ? { columns: 2, rows: Math.ceil(count / 2), isScrollable: true }
-        : { columns: 3, rows: 1, isScrollable: false };
+        ? { columns: 2, rows: 3, gap: "8px" }
+        : { columns: 3, rows: 2, gap: "12px" };
+    } else if (count <= 9) {
+      return { columns: 3, rows: 3, gap: isMobile ? "6px" : "10px" };
+    } else if (count <= 12) {
+      return isMobile
+        ? { columns: 2, rows: Math.ceil(count / 2), gap: "6px" }
+        : { columns: 4, rows: 3, gap: "10px" };
+    } else if (count <= 16) {
+      return { columns: 4, rows: 4, gap: isMobile ? "4px" : "8px" };
+    } else if (count <= 20) {
+      return isMobile
+        ? { columns: 3, rows: Math.ceil(count / 3), gap: "4px" }
+        : { columns: 5, rows: 4, gap: "6px" };
+    } else if (count <= 25) {
+      return isMobile
+        ? { columns: 3, rows: Math.ceil(count / 3), gap: "4px" }
+        : { columns: 5, rows: 5, gap: "6px" };
     } else {
-      // 4+ participants: always 2 columns per row, scrollable
-      return { columns: 2, rows: Math.ceil(count / 2), isScrollable: true };
+      return isMobile
+        ? { columns: 3, rows: Math.ceil(count / 3), gap: "3px" }
+        : { columns: 6, rows: Math.ceil(count / 6), gap: "4px" };
     }
   };
 
-  const { columns, rows, isScrollable } = getGridConfig(participantCount);
+  const { columns, gap } = getGridConfig(participantCount);
+
+  // Calculate appropriate aspect ratio and max height based on count
+  const getVideoConstraints = (count: number) => {
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
+    if (count === 1) {
+      return { aspectRatio: "16/9", maxHeight: "calc(100vh - 180px)" };
+    } else if (count === 2) {
+      return isMobile
+        ? { aspectRatio: "16/9", maxHeight: "calc((100vh - 200px) / 2 - 8px)" }
+        : { aspectRatio: "16/9", maxHeight: "calc(100vh - 180px)" };
+    } else if (count <= 4) {
+      return isMobile
+        ? { aspectRatio: "16/9", maxHeight: "calc((100vh - 220px) / 2 - 8px)" }
+        : {
+            aspectRatio: "16/9",
+            maxHeight: "calc((100vh - 200px) / 2 - 12px)",
+          };
+    } else if (count <= 6) {
+      return isMobile
+        ? { aspectRatio: "4/3", maxHeight: "calc((100vh - 240px) / 3 - 8px)" }
+        : {
+            aspectRatio: "16/9",
+            maxHeight: "calc((100vh - 200px) / 2 - 12px)",
+          };
+    } else if (count <= 9) {
+      return isMobile
+        ? { aspectRatio: "4/3", maxHeight: "calc((100vh - 260px) / 3 - 8px)" }
+        : { aspectRatio: "4/3", maxHeight: "calc((100vh - 220px) / 3 - 10px)" };
+    } else if (count <= 12) {
+      return isMobile
+        ? { aspectRatio: "4/3", maxHeight: "200px" }
+        : { aspectRatio: "4/3", maxHeight: "calc((100vh - 220px) / 3 - 10px)" };
+    } else if (count <= 16) {
+      return isMobile
+        ? { aspectRatio: "4/3", maxHeight: "180px" }
+        : { aspectRatio: "4/3", maxHeight: "calc((100vh - 240px) / 4 - 8px)" };
+    } else {
+      return isMobile
+        ? { aspectRatio: "4/3", maxHeight: "160px" }
+        : { aspectRatio: "4/3", maxHeight: "160px" };
+    }
+  };
+
+  const { aspectRatio, maxHeight } = getVideoConstraints(participantCount);
+  const needsScroll = participantCount > 16;
 
   return (
-    <div className="h-full w-full p-2 sm:p-4 flex flex-col">
-      {isScrollable ? (
-        // Scrollable layout for 3+ participants on mobile or 4+ on desktop
-        <div className="flex-1 overflow-y-auto">
-          <div
-            className="grid gap-2 sm:gap-4 min-h-full"
-            style={{
-              gridTemplateColumns: `repeat(${columns}, 1fr)`,
-              gridAutoRows: "minmax(200px, 1fr)",
-            }}
-          >
-            <AnimatePresence mode="popLayout">
-              {allParticipants.map((participant) => (
-                <div
-                  key={participant.id}
-                  className="min-h-[200px] sm:min-h-[300px] flex justify-center items-center"
-                >
-                  <ParticipantVideo
-                    participant={participant}
-                    isLocal={participant.id === "local"}
-                    className="w-full h-full"
-                  />
-                </div>
-              ))}
-            </AnimatePresence>
-          </div>
-        </div>
-      ) : (
-        // Non-scrollable layout
+    <div className="h-full w-full overflow-hidden">
+      <div
+        className={`h-full w-full ${
+          needsScroll
+            ? "overflow-y-auto overflow-x-hidden"
+            : "flex items-center justify-center"
+        } p-2 sm:p-4`}
+        style={{
+          scrollbarWidth: "thin",
+          scrollbarColor: "#4B5563 #1F2937",
+        }}
+      >
         <div
-          className="grid gap-2 sm:gap-4 flex-1 h-full"
+          className="grid w-full"
           style={{
             gridTemplateColumns: `repeat(${columns}, 1fr)`,
-            gridTemplateRows: `repeat(${rows}, 1fr)`,
+            gap: gap,
+            maxWidth: participantCount === 1 ? "1200px" : "100%",
+            margin: needsScroll ? "0" : "auto",
+            height: needsScroll ? "auto" : "fit-content",
           }}
         >
           <AnimatePresence mode="popLayout">
             {allParticipants.map((participant) => (
               <div
                 key={participant.id}
-                className="flex justify-center items-center min-h-0"
+                style={{
+                  aspectRatio: aspectRatio,
+                  maxHeight: maxHeight,
+                  width: "100%",
+                }}
               >
                 <ParticipantVideo
                   participant={participant}
                   isLocal={participant.id === "local"}
-                  className="w-full h-full max-w-full max-h-full"
                 />
               </div>
             ))}
           </AnimatePresence>
         </div>
-      )}
+      </div>
     </div>
   );
 };

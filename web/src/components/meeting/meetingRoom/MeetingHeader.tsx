@@ -1,18 +1,30 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Users } from "lucide-react";
+import MeetingTimer from "./MeetingTimer";
+import { socket } from "../../../socket/SocketConnect";
 
 interface MeetingHeaderProps {
   roomName: string;
   participantCount: number;
   isVisible: boolean;
 }
-
 const MeetingHeader: React.FC<MeetingHeaderProps> = ({
   roomName,
   participantCount,
   isVisible,
 }) => {
+  const [meetingStartTimestamp, setMeetingStartTimestamp] = useState(
+    Date.now()
+  );
+  useEffect(() => {
+    socket.emit("get-room-timestamp", { roomId: roomName }, (response: any) => {
+      if (response.error) {
+        return;
+      }
+      setMeetingStartTimestamp(response.timestamp);
+    });
+  }, []);
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
@@ -27,6 +39,7 @@ const MeetingHeader: React.FC<MeetingHeaderProps> = ({
           <h1 className="text-lg font-semibold">Meeting Room</h1>
           <p className="text-sm text-gray-300">Room: {roomName}</p>
         </div>
+        <MeetingTimer meetingStartTimestamp={meetingStartTimestamp} />
         <div className="flex items-center gap-2 text-sm">
           <Users size={16} />
           <span>{participantCount} participants</span>

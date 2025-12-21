@@ -23,8 +23,13 @@ type LobbyRoomProps = {
   setLocalParticipant: React.Dispatch<React.SetStateAction<Participant>>;
 };
 const LobbyRoom = ({ setLocalParticipant }: LobbyRoomProps) => {
-  const { roomName, setLocalStream, updateMeetingState } =
-    useCurrentMeetingState();
+  const {
+    roomName,
+    setLocalStream,
+    updateMeetingState,
+    setPermissions,
+    permissions,
+  } = useCurrentMeetingState();
   const {
     setRtpCapabilities,
     setDevice,
@@ -40,8 +45,8 @@ const LobbyRoom = ({ setLocalParticipant }: LobbyRoomProps) => {
   const [selectedAudioDevice, setSelectedAudioDevice] = useState<string>("");
   //   const [isBackgroundBlurred, setIsBackgroundBlurred] =
   //     useState<boolean>(false);
-  const [isCameraOn, setIsCameraOn] = useState<boolean>(true);
-  const [isMicOn, setIsMicOn] = useState<boolean>(true);
+  const [isCameraOn, setIsCameraOn] = useState<boolean>(false);
+  const [isMicOn, setIsMicOn] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -81,12 +86,36 @@ const LobbyRoom = ({ setLocalParticipant }: LobbyRoomProps) => {
 
     // 1️⃣ Wait until browser updates permission state
     try {
-      await Promise.all([
+      const [camera, microphone] = await Promise.all([
         navigator.permissions.query({ name: "camera" as PermissionName }),
         navigator.permissions.query({ name: "microphone" as PermissionName }),
       ]);
-    } catch (error) {
-      console.log("error", error);
+
+      setLocalParticipant((prev) => ({
+        ...prev,
+        videoEnabled: camera.state === "granted",
+        audioEnabled: microphone.state === "granted",
+      }));
+      if (camera.state === "granted") {
+        setIsCameraOn(true);
+      }
+      if (camera.state === "granted") {
+        setIsMicOn(true);
+      }
+      setPermissions({
+        camera: camera.state === "granted",
+        mic: microphone.state === "granted",
+      });
+    } catch (err) {
+      // Permissions API not supported
+      setLocalParticipant((prev) => ({
+        ...prev,
+        videoEnabled: false,
+        audioEnabled: false,
+      }));
+      setIsCameraOn(false);
+      setIsMicOn(false);
+      setPermissions({ camera: false, mic: false });
     }
 
     // 2️⃣ Request stream FIRST (so device list unlocks)
@@ -94,6 +123,8 @@ const LobbyRoom = ({ setLocalParticipant }: LobbyRoomProps) => {
       await getUserMediaStream({ video: true, audio: true });
 
     if (streamError || !mediaStream) {
+      console.log("Stream Error-->", streamError);
+      console.log("MediaStream--->", mediaStream);
       message.error("Failed to access camera/microphone");
       setIsLoading(false);
       return;
@@ -153,6 +184,10 @@ const LobbyRoom = ({ setLocalParticipant }: LobbyRoomProps) => {
   };
 
   const toggleCamera = () => {
+    if (permissions.camera == false) {
+      message.warning("Provide permission manual and then reload");
+      return;
+    }
     setIsCameraOn((prev) => {
       const newState = !prev;
       if (stream) {
@@ -168,6 +203,10 @@ const LobbyRoom = ({ setLocalParticipant }: LobbyRoomProps) => {
   };
 
   const toggleMicrophone = () => {
+    if (permissions.camera == false) {
+      message.warning("Provide permission manual and then reload");
+      return;
+    }
     setIsMicOn((prev) => {
       const newState = !prev;
       if (stream) {
@@ -219,6 +258,7 @@ const LobbyRoom = ({ setLocalParticipant }: LobbyRoomProps) => {
           if (!params) return;
           const transport = device.createSendTransport(params);
           setProducerTransport(transport);
+
           transport.on("connect", ({ dtlsParameters }, callback) => {
             try {
               socket.emit(
@@ -229,6 +269,18 @@ const LobbyRoom = ({ setLocalParticipant }: LobbyRoomProps) => {
             } catch (error) {
               console.log("Error", error);
             }
+          });
+          const pc = new RTCPeerConnection();
+          pc.onicecandidate = (event) => {
+            if (event.candidate) {
+              console.log(
+                "ICE Candidate of sender:",
+                event.candidate.candidate
+              );
+            }
+          };
+          transport.on("connectionstatechange", (state) => {
+            console.log("SEND TRANSPORT STATE:", state); // connected / failed / disconnected
           });
           transport.on("produce", async ({ kind, rtpParameters }, callback) => {
             socket.emit(

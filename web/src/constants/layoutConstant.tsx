@@ -7,7 +7,7 @@ export const LOGO = ({ textColor }: { textColor: string }) => (
         textColor || "black"
       }`}
     >
-      EchoMeet
+      Meet
     </h1>
   </div>
 );

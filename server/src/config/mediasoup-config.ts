@@ -1,21 +1,25 @@
 import { RtpCodecCapability } from "mediasoup/node/lib/types";
+import os from "os";
 
 export const mediasoupConfig = {
   // 🔐 Server config
-  port: 3000,
+  port: 3000, // your backend port (make sure SG allows this)
 
   // ⚙️ Mediasoup worker settings
-  numWorkers: Object.keys(require("os").cpus()).length,
-  minPort: 40000,
-  maxPort: 49999,
+  numWorkers: Object.keys(os.cpus()).length,
+  worker: {
+    rtcMinPort: 40000,
+    rtcMaxPort: 49999,
+    logLevel: "warn",
+    logTags: ["info", "ice", "dtls", "rtp", "srtp", "rtcp"],
+  },
 
   // 📡 WebRTC transport settings
   transportOptions: {
     listenIps: [
       {
-        // 1. For clients on the Public Internet
-        ip: "0.0.0.0",
-        announcedIp: process.env.ANNOUNCED_IP, // Your Public IP
+        ip: "0.0.0.0", // listen on all network interfaces
+        announcedIp: process.env.ANNOUNCED_IP, // your public IP or domain
       },
     ],
     enableUdp: true,
@@ -25,7 +29,7 @@ export const mediasoupConfig = {
     maxIncomingBitrate: 1500000,
   },
 
-  // 🎙️ Media codecs (these match most browsers)
+  // 🎙️ Media codecs
   mediaCodecs: <RtpCodecCapability[]>[
     {
       kind: "audio",

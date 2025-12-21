@@ -12,6 +12,7 @@ import type {
 } from "../../../types/MediaTypes";
 import useMediaSoupState from "../../../store/mediaSoupState";
 import type { Transport } from "mediasoup-client/types";
+import { message } from "antd";
 type MeetingRoomProps = {
   localParticipant: Participant;
   setLocalParticipant: React.Dispatch<React.SetStateAction<Participant>>;
@@ -21,17 +22,16 @@ const MeetingRoom = ({
   localParticipant,
   setLocalParticipant,
 }: MeetingRoomProps) => {
-  const { roomName, localStream } = useCurrentMeetingState();
+  const { roomName, localStream, permissions } = useCurrentMeetingState();
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const { setRecvTransport, recvTransport, device } = useMediaSoupState();
-  const { producerTransport } = useMediaSoupState();
+  const { setRecvTransport, recvTransport, device, producerTransport } =
+    useMediaSoupState();
   const [controlsVisible, setControlsVisible] = useState(true);
   const [isControlsHovered, setIsControlsHovered] = useState(false);
   const hideControlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
   const { updateMeetingState } = useCurrentMeetingState();
-
   // Auto-hide controls logic
   useEffect(() => {
     const resetHideTimer = () => {
@@ -63,13 +63,11 @@ const MeetingRoom = ({
     };
   }, [isControlsHovered]);
 
-  // Switch to fixed sizes when there are many participants
-  //   useEffect(() => {
-  //     const totalParticipants = participants.length + 1; // +1 for local participant
-  //     setUseFixedSizes(totalParticipants > 8);
-  //   }, [participants.length]);
-
   const toggleVideo = async () => {
+    if (permissions.camera == false) {
+      message.warning("Provide permission manual and then reload");
+      return;
+    }
     const isCurrentlyEnabled = localParticipant.videoEnabled;
 
     setLocalParticipant((prev) => ({
@@ -95,6 +93,10 @@ const MeetingRoom = ({
   };
 
   const toggleAudio = () => {
+    if (permissions.mic == false) {
+      message.warning("Provide permission manual and then reload");
+      return;
+    }
     const isCurrentlyEnabled = localParticipant.audioEnabled;
 
     setLocalParticipant((prev) => ({
@@ -140,7 +142,6 @@ const MeetingRoom = ({
         });
         console.log("Video producer created");
       }
-
       // 🔊 AUDIO
       const audioTrack = localStream.getAudioTracks()[0];
       if (audioTrack) {
@@ -170,6 +171,18 @@ const MeetingRoom = ({
               callback
             );
           });
+          transport.on("connectionstatechange", (state) => {
+            console.log("RECV TRANSPORT STATE:", state);
+          });
+          const pc = new RTCPeerConnection();
+          pc.onicecandidate = (event) => {
+            if (event.candidate) {
+              console.log(
+                "ICE Candidate of recievre:",
+                event.candidate.candidate
+              );
+            }
+          };
           // await transport.connect();
           setRecvTransport(transport);
         }
@@ -202,20 +215,6 @@ const MeetingRoom = ({
             kind: params.producerInfo.kind,
             rtpParameters: params.producerInfo.rtpParameters,
           });
-          // const newStream = new MediaStream([consumer.track]);
-          //   if (kind == "audio") return;
-          //   setParticipants((prev) => [
-          //     ...prev,
-          //     {
-          //       id: Date.now().toString(),
-          //       socketId: params.userInfo.socketId,
-          //       name: params.userInfo.userName || "user",
-          //       stream: newStream,
-          //       videoEnabled: true,
-          //       audioEnabled: true,
-          //       isSpeaking: false,
-          //     },
-          //   ]);
           setParticipants((prev) => {
             let existing = prev.find((p) => p.socketId === socketId);
 
@@ -251,20 +250,82 @@ const MeetingRoom = ({
         });
       });
     }
+
+    socket.on("user-joined", (data: any) => {
+      if (data.socketId)
+        //@ts-ignore
+        setParticipants((prev) => {
+          let existing = prev.find((p) => p.socketId === data.socketId);
+          const updated = prev.filter((p) => p.socketId !== data.socketId);
+          if (existing) return updated;
+          if (!existing) {
+            // Create new participant with empty stream
+            existing = {
+              id: Date.now().toString(),
+              socketId: data.socketId,
+              name: data.userName || "user",
+              stream: new MediaStream(),
+              videoEnabled: data.videoEnabled,
+              audioEnabled: data.audioEnabled,
+              isSpeaking: data.isSpeaking,
+            };
+          }
+          return [...updated, existing];
+        });
+    });
+    socket.on("get-all-users", (data: any) => {
+      for (let user of data) {
+        if (user.socketId == socket.id) continue;
+        //@ts-ignore
+        setParticipants((prev) => {
+          let existing = prev.find((p) => p.socketId === user.socketId);
+          const updated = prev.filter((p) => p.socketId !== user.socketId);
+          if (existing) return updated;
+          if (!existing) {
+            // Create new participant with empty stream
+            existing = {
+              id: Date.now().toString(),
+              socketId: user.socketIt,
+              name: user.userName || "user",
+              stream: null, // initially empty
+              videoEnabled: user.videoEnabled,
+              audioEnabled: user.audioEnabled,
+              isSpeaking: user.isSpeaking,
+            };
+          }
+          return [...updated, existing];
+        });
+      }
+    });
     return () => {
       socket.off("new-producer");
       socket.off("get-all-producers");
+      socket.off("user-joined");
+      socket.off("get-all-users");
     };
   }, [recvTransport]);
 
   useEffect(() => {
-    socket.on("user-left", ({ userName, socketId }) => {
+    socket.on("user-left", ({ userName, socketId, reason, isHost }) => {
+      if (isHost) {
+        window.location.reload();
+        return;
+      }
+      if (reason == "remove" && socket.id == socketId) {
+        window.location.reload();
+        return;
+      }
       console.log({ userName, socketId });
       setParticipants((prev) =>
         prev.filter((par) => par.socketId !== socketId)
       );
     });
     socket.on("user-resume-video", ({ socketId }) => {
+      console.log("user-paused video", socketId);
+      if (socketId == socket.id) {
+        setLocalParticipant({ ...localParticipant, videoEnabled: true });
+        return;
+      }
       setParticipants((participant) =>
         participant.map((part) =>
           part.socketId == socketId ? { ...part, videoEnabled: true } : part
@@ -272,6 +333,10 @@ const MeetingRoom = ({
       );
     });
     socket.on("user-paused-video", ({ socketId }) => {
+      if (socketId == socket.id) {
+        setLocalParticipant({ ...localParticipant, videoEnabled: false });
+        return;
+      }
       setParticipants((participant) =>
         participant.map((part) =>
           part.socketId == socketId ? { ...part, videoEnabled: false } : part
@@ -280,6 +345,10 @@ const MeetingRoom = ({
     });
 
     socket.on("user-resume-audio", ({ socketId }) => {
+      if (socketId == socket.id) {
+        setLocalParticipant({ ...localParticipant, audioEnabled: true });
+        return;
+      }
       setParticipants((participant) =>
         participant.map((part) =>
           part.socketId == socketId ? { ...part, audioEnabled: true } : part
@@ -288,6 +357,10 @@ const MeetingRoom = ({
     });
 
     socket.on("user-paused-audio", ({ socketId }) => {
+      if (socketId == socket.id) {
+        setLocalParticipant({ ...localParticipant, audioEnabled: false });
+        return;
+      }
       setParticipants((participant) =>
         participant.map((part) =>
           part.socketId == socketId ? { ...part, audioEnabled: false } : part

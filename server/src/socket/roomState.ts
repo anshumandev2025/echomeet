@@ -2,7 +2,11 @@ import { types as msTypes } from "mediasoup";
 type RoomUsers = {
   [roomId: string]: Set<string>; // roomId -> Set of usernames
 };
-
+type RoomTimeStampType = {
+  [roomId: string]: {
+    timeStamp: number;
+  };
+};
 type SocketToUser = {
   [socketId: string]: {
     userName: string;
@@ -10,12 +14,13 @@ type SocketToUser = {
     videoEnabled: boolean;
     audioEnabled: boolean;
     isSpeaking: boolean;
+    isHost: boolean;
   };
 };
 
 export const roomUsers: RoomUsers = {};
 export const socketToUser: SocketToUser = {};
-
+export const roomTimeStamp: RoomTimeStampType = {};
 export const routers: Record<string, msTypes.Router> = {};
 export const peerTransports: Record<string, msTypes.WebRtcTransport[]> = {};
 export const producers: Record<string, msTypes.Producer[]> = {};
