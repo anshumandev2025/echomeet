@@ -13,8 +13,8 @@ const MeetingPage = () => {
     name: "You",
     socketId: socket.id || null,
     stream: localStream,
-    videoEnabled: true,
-    audioEnabled: true,
+    videoEnabled: localStream ? localStream.getVideoTracks().length > 0 : false,
+    audioEnabled: localStream ? localStream.getAudioTracks().length > 0 : false,
     isSpeaking: false,
   });
   return (

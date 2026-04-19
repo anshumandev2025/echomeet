@@ -23,134 +23,91 @@ const VideoGrid: React.FC<VideoGridProps> = ({
   const allParticipants = [localParticipant, ...participants];
   const participantCount = allParticipants.length;
 
-  // Get grid configuration based on participant count (Google Meet style)
-  const getGridConfig = (count: number) => {
-    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  // Dynamic Grid Configuration
+  const getGridStyles = (count: number) => {
+    let cols = 1;
+    let rows = 1;
 
     if (count === 1) {
-      return { columns: 1, rows: 1, gap: "0px" };
+      cols = 1;
+      rows = 1;
     } else if (count === 2) {
-      return isMobile
-        ? { columns: 1, rows: 2, gap: "8px" }
-        : { columns: 2, rows: 1, gap: "12px" };
-    } else if (count <= 4) {
-      return { columns: 2, rows: 2, gap: isMobile ? "8px" : "12px" };
+      cols = 2;
+      rows = 1;
+    } // Side by side usually better for 2
+    else if (count <= 4) {
+      cols = 2;
+      rows = 2;
     } else if (count <= 6) {
-      return isMobile
-        ? { columns: 2, rows: 3, gap: "8px" }
-        : { columns: 3, rows: 2, gap: "12px" };
+      cols = 3;
+      rows = 2;
     } else if (count <= 9) {
-      return { columns: 3, rows: 3, gap: isMobile ? "6px" : "10px" };
+      cols = 3;
+      rows = 3;
     } else if (count <= 12) {
-      return isMobile
-        ? { columns: 2, rows: Math.ceil(count / 2), gap: "6px" }
-        : { columns: 4, rows: 3, gap: "10px" };
+      cols = 4;
+      rows = 3;
     } else if (count <= 16) {
-      return { columns: 4, rows: 4, gap: isMobile ? "4px" : "8px" };
-    } else if (count <= 20) {
-      return isMobile
-        ? { columns: 3, rows: Math.ceil(count / 3), gap: "4px" }
-        : { columns: 5, rows: 4, gap: "6px" };
-    } else if (count <= 25) {
-      return isMobile
-        ? { columns: 3, rows: Math.ceil(count / 3), gap: "4px" }
-        : { columns: 5, rows: 5, gap: "6px" };
+      cols = 4;
+      rows = 4;
     } else {
-      return isMobile
-        ? { columns: 3, rows: Math.ceil(count / 3), gap: "3px" }
-        : { columns: 6, rows: Math.ceil(count / 6), gap: "4px" };
+      cols = 5;
+      rows = 4;
+    } // Up to 20
+
+    // Mobile adjustments
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      if (count <= 2) {
+        cols = 1;
+        rows = count;
+      } else if (count <= 6) {
+        cols = 2;
+        rows = Math.ceil(count / 2);
+      } else {
+        cols = 3;
+        rows = Math.ceil(count / 3);
+      }
     }
+
+    return { cols, rows };
   };
 
-  const { columns, gap } = getGridConfig(participantCount);
-
-  // Calculate appropriate aspect ratio and max height based on count
-  const getVideoConstraints = (count: number) => {
-    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-
-    if (count === 1) {
-      return { aspectRatio: "16/9", maxHeight: "calc(100vh - 180px)" };
-    } else if (count === 2) {
-      return isMobile
-        ? { aspectRatio: "16/9", maxHeight: "calc((100vh - 200px) / 2 - 8px)" }
-        : { aspectRatio: "16/9", maxHeight: "calc(100vh - 180px)" };
-    } else if (count <= 4) {
-      return isMobile
-        ? { aspectRatio: "16/9", maxHeight: "calc((100vh - 220px) / 2 - 8px)" }
-        : {
-            aspectRatio: "16/9",
-            maxHeight: "calc((100vh - 200px) / 2 - 12px)",
-          };
-    } else if (count <= 6) {
-      return isMobile
-        ? { aspectRatio: "4/3", maxHeight: "calc((100vh - 240px) / 3 - 8px)" }
-        : {
-            aspectRatio: "16/9",
-            maxHeight: "calc((100vh - 200px) / 2 - 12px)",
-          };
-    } else if (count <= 9) {
-      return isMobile
-        ? { aspectRatio: "4/3", maxHeight: "calc((100vh - 260px) / 3 - 8px)" }
-        : { aspectRatio: "4/3", maxHeight: "calc((100vh - 220px) / 3 - 10px)" };
-    } else if (count <= 12) {
-      return isMobile
-        ? { aspectRatio: "4/3", maxHeight: "200px" }
-        : { aspectRatio: "4/3", maxHeight: "calc((100vh - 220px) / 3 - 10px)" };
-    } else if (count <= 16) {
-      return isMobile
-        ? { aspectRatio: "4/3", maxHeight: "180px" }
-        : { aspectRatio: "4/3", maxHeight: "calc((100vh - 240px) / 4 - 8px)" };
-    } else {
-      return isMobile
-        ? { aspectRatio: "4/3", maxHeight: "160px" }
-        : { aspectRatio: "4/3", maxHeight: "160px" };
-    }
-  };
-
-  const { aspectRatio, maxHeight } = getVideoConstraints(participantCount);
-  const needsScroll = participantCount > 16;
+  const { cols, rows } = getGridStyles(participantCount);
 
   return (
-    <div className="h-full w-full overflow-hidden">
+    <div className="h-full w-full overflow-hidden flex items-center justify-center p-2 sm:p-4">
       <div
-        className={`h-full w-full ${
-          needsScroll
-            ? "overflow-y-auto overflow-x-hidden"
-            : "flex items-center justify-center"
-        } p-2 sm:p-4`}
+        // Changed: h-auto max-h-full to let content dictate height (up to full screen)
+        // content-center ensures it stays vertically centered
+        className="grid w-full h-auto max-h-full content-center justify-center"
         style={{
-          scrollbarWidth: "thin",
-          scrollbarColor: "#4B5563 #1F2937",
+          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+          // Rows auto-size
+          gap: "8px",
+          maxWidth:
+            participantCount === 1
+              ? "1200px"
+              : participantCount === 2
+                ? "1600px"
+                : "100%",
+          width: "100%",
         }}
       >
-        <div
-          className="grid w-full"
-          style={{
-            gridTemplateColumns: `repeat(${columns}, 1fr)`,
-            gap: gap,
-            maxWidth: participantCount === 1 ? "1200px" : "100%",
-            margin: needsScroll ? "0" : "auto",
-            height: needsScroll ? "auto" : "fit-content",
-          }}
-        >
-          <AnimatePresence mode="popLayout">
-            {allParticipants.map((participant) => (
-              <div
-                key={participant.id}
-                style={{
-                  aspectRatio: aspectRatio,
-                  maxHeight: maxHeight,
-                  width: "100%",
-                }}
-              >
-                <ParticipantVideo
-                  participant={participant}
-                  isLocal={participant.id === "local"}
-                />
-              </div>
-            ))}
-          </AnimatePresence>
-        </div>
+        <AnimatePresence mode="popLayout">
+          {allParticipants.map((participant) => (
+            <div
+              key={participant.id}
+              // Force aspect ratio so the TILE is 16:9, not a vertical pillar.
+              // Shadow and border radius moved here usually or inside ParticipantVideo.
+              className="w-full min-h-0 min-w-0 aspect-video shadow-lg rounded-xl overflow-hidden"
+            >
+              <ParticipantVideo
+                participant={participant}
+                isLocal={participant.id === "local"}
+              />
+            </div>
+          ))}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -9,7 +9,7 @@ const App = () => {
     if (location.pathname == "/") {
       navigate("/meeting");
     }
-  }, []);
+  }, [location.pathname, navigate]);
   return (
     <>
       <MessageProvider>

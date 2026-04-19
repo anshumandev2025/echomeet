@@ -22,7 +22,7 @@ const JoinMeeting = () => {
     if (!roomName) {
       setRoomName(generateRoomName());
     }
-  }, []);
+  }, [setRoomName, roomName]);
 
   const handleJoinMeeting = async () => {
     if (!roomName.trim()) return;

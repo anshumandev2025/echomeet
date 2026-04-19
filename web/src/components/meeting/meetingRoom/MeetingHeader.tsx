@@ -15,7 +15,7 @@ const MeetingHeader: React.FC<MeetingHeaderProps> = ({
   isVisible,
 }) => {
   const [meetingStartTimestamp, setMeetingStartTimestamp] = useState(
-    Date.now()
+    Date.now(),
   );
   useEffect(() => {
     socket.emit("get-room-timestamp", { roomId: roomName }, (response: any) => {

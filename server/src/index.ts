@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import connectToServer from "./server";
 const port = process.env.PORT || 3000;
 

@@ -3,8 +3,8 @@ import express from "express";
 import { Server } from "socket.io";
 import cors from "cors";
 import http from "http";
-import https from "https";
-import fs from "fs";
+// import https from "https";
+// import fs from "fs";
 import {
   disconnectHandler,
   getRoomTimeStamp,
@@ -30,14 +30,14 @@ import { types as msTypes } from "mediasoup";
 dotenv.config();
 const connectToServer = () => {
   const app = express();
-  // const server = http.createServer(app);
-  const server = https.createServer(
-    {
-      key: fs.readFileSync("../cert.key"),
-      cert: fs.readFileSync("../cert.crt"),
-    },
-    app
-  );
+  const server = http.createServer(app);
+  // const server = https.createServer(
+  //   {
+  //     key: fs.readFileSync("../cert.key"),
+  //     cert: fs.readFileSync("../cert.crt"),
+  //   },
+  //   app
+  // );
   const io = new Server(server, { cors: { origin: "*" } });
   let worker: msTypes.Worker;
   (async () => {
@@ -58,27 +58,27 @@ const connectToServer = () => {
       getRoomTimeStamp(roomId, callback);
     });
     socket.on("get-rtp-capabilities", ({ roomId }, callback) =>
-      getRTPCapabilities(worker, roomId, callback)
+      getRTPCapabilities(worker, roomId, callback),
     );
 
     socket.on("create-transport", ({ roomId, direction }, callback) =>
-      createTransport(socket, roomId, direction, worker, callback)
+      createTransport(socket, roomId, direction, worker, callback),
     );
 
     socket.on(
       "connect-transport",
       ({ transportId, dtlsParameters }, callback) =>
-        connectTransport(socket, transportId, dtlsParameters, callback)
+        connectTransport(socket, transportId, dtlsParameters, callback),
     );
 
     socket.on("produce", ({ kind, rtpParameters, transportId }, callback) =>
-      handleProduce(socket, kind, rtpParameters, transportId, callback)
+      handleProduce(socket, kind, rtpParameters, transportId, callback),
     );
 
     socket.on(
       "consume",
       ({ producerId, rtpCapabilities, socketId }, callback) =>
-        handleConsume(socket, producerId, rtpCapabilities, socketId, callback)
+        handleConsume(socket, producerId, rtpCapabilities, socketId, callback),
     );
     socket.on("resume-producer-video", (socketId) => {
       handleResumeProducerVideo(socketId, io);
@@ -95,12 +95,12 @@ const connectToServer = () => {
       handleResumeProducerAudio(socketId, io);
     });
     socket.on("get-all-producers", ({ socketId }, callback) =>
-      handleGetAllProducers(socketId, socket, callback)
+      handleGetAllProducers(socketId, socket, callback),
     );
     socket.on(
       "send-new-message",
       ({ roomId, userName, newMessage, timeStamp }) =>
-        handleNewMessage(roomId, userName, newMessage, timeStamp, socket)
+        handleNewMessage(roomId, userName, newMessage, timeStamp, socket),
     );
     socket.on("disconnect", () => disconnectHandler(socket));
   });

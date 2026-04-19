@@ -13,7 +13,7 @@ const ParticipantsList = ({
 }) => {
   const [isHost, setIsHost] = useState(false);
   const getParticipantMenuItems = (
-    participant: Participant
+    participant: Participant,
   ): MenuProps["items"] => [
     {
       key: "audio",
